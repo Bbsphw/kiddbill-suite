@@ -1,0 +1,43 @@
+# infra/docker-compose.yml
+
+# version: "3.8"
+
+services:
+  # --- Database: PostgreSQL ---
+  kiddbill-db:
+    image: postgres:16-alpine
+    container_name: kiddbill-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432" # Map Port จาก .env (5433) -> 5432 (ใน Container)
+    volumes:
+      - kiddbill-db-data:/var/lib/postgresql/data
+    networks:
+      - kiddbill-network
+
+  # --- Database GUI: pgAdmin ---
+  kiddbill-pgadmin:
+    image: dpage/pgadmin4
+    container_name: kiddbill-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80" # เข้าเว็บ http://localhost:5050
+    depends_on:
+      - kiddbill-db
+    networks:
+      - kiddbill-network
+
+networks:
+  kiddbill-network:
+    driver: bridge # แนะนำให้ระบุ driver ชัดเจน (แม้ default จะเป็น bridge)
+
+volumes:
+  kiddbill-db-data:
+    driver: local

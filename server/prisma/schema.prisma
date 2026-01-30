@@ -1,0 +1,284 @@
+// /prisma/schema.prisma
+
+// ========================================================
+// 1. CONFIGURATION (การตั้งค่าพื้นฐาน)
+// ========================================================
+
+generator client {
+  provider = "prisma-client-js"
+  // output          = "../generated/client"
+  // previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========================================================
+// 2. USER & IDENTITY (ระบบผู้ใช้)
+// ========================================================
+
+model User {
+  // ID: เก็บ User ID จาก Clerk (เช่น user_2k...) หรือ Guest UUID
+  id String @id
+
+  // Email: ต้องตั้งเป็น Optional (?) เพราะ Guest User จะไม่มีอีเมล
+  // (PostgreSQL อนุญาตให้ค่า null ซ้ำกันได้ในคอลัมน์ unique)
+  email String? @unique
+
+  // Username: ใช้สำหรับค้นหาเพื่อน หรือ Tag หากัน (เช่น @somchai)
+  username  String? @unique
+  firstName String?
+  lastName  String?
+  avatarUrl String?
+
+  // Flag: ตัวแยกแยะระหว่าง User จริง กับ Guest
+  // true = Guest (ระบบลบอัตโนมัติได้เมื่อเก่าเกินไป)
+  // false = Registered User
+  isGuest Boolean @default(false)
+
+  // Last Active: ใช้ทำ Cron Job กวาดล้าง Guest เก่าๆ ที่ไม่ได้ใช้งานเกิน 30 วัน
+  lastActiveAt DateTime @default(now())
+
+  // --- Relations (การเชื่อมโยง) ---
+  bankAccounts UserBankAccount[] // สมุดบัญชีธนาคารส่วนตัว
+  ownedBills   Bill[]            @relation("Owner") // บิลที่เป็นเจ้าของ (Host)
+  paidBills    Bill[]            @relation("Payer") // บิลที่สำรองจ่าย (Payer)
+  memberships  BillMember[] // ประวัติการไปแจมบิลคนอื่น
+  savedFriends Friend[] // รายชื่อเพื่อนที่เมมเก็บไว้
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ตารางเพื่อนที่บันทึกไว้ (Friend Book)
+// แก้ปัญหา: ไปกินกับ "แม่", "แฟน" บ่อยๆ ไม่อยากพิมพ์ชื่อใหม่ทุกรอบ
+model Friend {
+  id       String @id @default(uuid())
+  nickname String // ชื่อเล่นที่ User ตั้งให้เอง (เช่น "ไอ้อ้วน")
+
+  // ความเป็นเจ้าของ: เป็น List ส่วนตัวของ User คนนั้นๆ
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Constraint: ห้ามตั้งชื่อเพื่อนซ้ำกันใน List ของตัวเอง
+  @@unique([userId, nickname])
+}
+
+// ========================================================
+// 3. FINANCIAL ACCOUNTS (สมุดบัญชี)
+// ========================================================
+
+model UserBankAccount {
+  id String @id @default(uuid())
+
+  // ข้อมูลบัญชี
+  bankName      String // เช่น KBANK, SCB, PROMPTPAY
+  accountNumber String // เลขบัญชี หรือ เบอร์มือถือ/บัตร ปชช.
+  accountName   String // ชื่อเจ้าของบัญชี (เพื่อความมั่นใจก่อนโอน)
+
+  // บัญชีหลัก: เวลาสร้างบิลใหม่ จะดึงอันนี้ไปใช้อัตโนมัติ
+  isDefault Boolean @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraint: User คนเดิม ห้ามเมมเลขบัญชีซ้ำ
+  @@unique([userId, accountNumber])
+}
+
+// ========================================================
+// 4. BILL CORE (ข้อมูลหลักของบิล)
+// ========================================================
+
+model Bill {
+  id String @id @default(uuid()) // Internal ID (UUID ยาวๆ)
+
+  // ข้อมูลทั่วไป
+  title    String  @default("New Bill")
+  note     String? // โน้ตเพิ่มเติม เช่น "เลี้ยงวันเกิด, ห้ามหารเหล้า"
+  currency String  @default("THB") // รองรับสกุลเงินต่างประเทศ
+
+  // --- หลักฐานและ AI ---
+  receiptUrl String? // รูปใบเสร็จ (URL จาก Supabase Storage)
+  rawOcrData Json? // เก็บ JSON ดิบจาก AI เผื่อไว้ Debug หรือ Process ใหม่
+
+  // --- การเข้าถึงห้อง (Access Control) ---
+  joinCode String  @unique // รหัสสั้น 6 หลัก (เช่น A8K9X) ให้เพื่อนพิมพ์เข้าห้อง
+  passcode String? // รหัสผ่านเข้าห้อง (Optional)
+
+  // --- การตั้งค่าคำนวณเงิน (Financial Config) ---
+  vatRate           Decimal @default(7.00) @db.Decimal(5, 2)
+  serviceChargeRate Decimal @default(10.00) @db.Decimal(5, 2)
+
+  // Logic ภาษี: 
+  // true = ราคารวม VAT แล้ว (Inclusive)
+  // false = ต้องบวก VAT เพิ่มท้ายบิล (Exclusive)
+  isVatIncluded           Boolean @default(true)
+  isServiceChargeIncluded Boolean @default(false)
+
+  // ส่วนลดท้ายบิล (Discount)
+  discountAmount  Decimal @default(0) @db.Decimal(10, 2) // ลดเป็นบาท
+  discountPercent Decimal @default(0) @db.Decimal(5, 2) // ลดเป็น %
+
+  // การปัดเศษ (เช่น ปัดขึ้น, ปัดลง, หรือทศนิยมเป๊ะๆ)
+  roundingMode RoundingMode @default(NONE)
+
+  // --- ปลายทางรับเงิน (Snapshot) ---
+  // สำคัญ: ต้อง Copy ข้อมูลจาก UserBankAccount มาเก็บไว้ที่นี่เสมอ
+  // เพื่อป้องกันกรณี User ลบบัญชีทิ้ง แต่บิลเก่ายังต้องมีข้อมูลโอนเงินอยู่
+  promptPayNumber String?
+  promptPayName   String?
+  bankName        String?
+  bankAccount     String?
+
+  // --- สถานะ ---
+  status    BillStatus @default(DRAFT)
+  deletedAt DateTime? // Soft Delete (ลบแล้วแค่ซ่อน ไม่หายจริง)
+
+  // --- Relations ---
+  ownerId String
+  owner   User   @relation("Owner", fields: [ownerId], references: [id])
+
+  payerId String? // คนรูดบัตร (อาจไม่ใช่เจ้าของห้อง)
+  payer   User?   @relation("Payer", fields: [payerId], references: [id])
+
+  items   BillItem[]
+  members BillMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexing: เพื่อให้ค้นหาบิลด้วย Join Code หรือ Owner ได้เร็ว
+  @@index([joinCode])
+  @@index([ownerId])
+}
+
+// ========================================================
+// 5. BILL ITEMS (รายการอาหาร)
+// ========================================================
+
+model BillItem {
+  id String @id @default(uuid())
+
+  // [Improved] ลำดับรายการ: เพื่อให้เรียงตามใบเสร็จจริง ไม่กระโดดไปมา
+  orderIndex Int @default(0)
+
+  name     String // ชื่อเมนู
+  price    Decimal @db.Decimal(10, 2) // ราคาต่อหน่วย
+  quantity Int     @default(1) // จำนวน
+
+  // Cache: เก็บราคารวม (price * quantity) ลดภาระการคูณตอน Query
+  totalPrice Decimal @default(0) @db.Decimal(10, 2)
+
+  type ItemType @default(FOOD)
+
+  // --- Overrides (ข้อยกเว้นรายเมนู) ---
+  // เช่น: เหล้าขวดนี้ร้านไม่คิด Service Charge ให้ set false
+  applyVat           Boolean @default(true)
+  applyServiceCharge Boolean @default(true)
+
+  // Relation
+  billId String
+  bill   Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)
+  splits ItemSplit[] // เชื่อมโยงว่าใครหารรายการนี้บ้าง
+
+  @@index([billId])
+}
+
+// ========================================================
+// 6. MEMBERS (สมาชิกในบิล)
+// ========================================================
+
+model BillMember {
+  id String @id @default(uuid())
+
+  name String // ชื่อที่แสดงในบิล (Display Name)
+
+  // --- สถานะการจ่ายเงิน ---
+  isPaid          Boolean   @default(false) // โอนหรือยัง?
+  paidAt          DateTime? // โอนเมื่อไหร่
+  paymentProofUrl String? // แนบสลิป
+
+  // [Improved] ยืนยันการจ่าย: เจ้าของบิลกด Approve สลิปแล้วหรือยัง?
+  verifiedAt DateTime?
+
+  // --- ตัวเลขการเงิน ---
+  // ยอดสุทธิที่ต้องจ่าย (คำนวณเสร็จแล้วมาแปะไว้)
+  netAmountToPay Decimal @default(0) @db.Decimal(10, 2)
+
+  // ยอดที่จ่ายไปก่อน (Advance) เช่น ค่ามัดจำ
+  paidAmount Decimal @default(0) @db.Decimal(10, 2)
+
+  // เชื่อมกับ User จริง (ถ้ามี)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  billId String
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  splits ItemSplit[]
+
+  // Constraint: User 1 คน ห้ามเข้าบิลเดิมซ้ำ (ป้องกันชื่อซ้ำ)
+  @@unique([billId, userId])
+}
+
+// ========================================================
+// 7. SPLITTING LOGIC (ตรรกะการหาร)
+// ========================================================
+
+model ItemSplit {
+  id String @id @default(uuid())
+
+  // เชื่อมโยง: เมนูนี้ <-> สมาชิกคนนี้
+  itemId String
+  item   BillItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   BillMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  // --- วิธีหาร (หัวใจสำคัญ) ---
+  // 1. Weight: หารตามสัดส่วน (1=เท่ากัน, 2=สองเท่า)
+  weight Decimal @default(1.00) @db.Decimal(5, 2)
+
+  // 2. FixedAmount: ระบุราคาตายตัว (Override Weight)
+  // "จานนี้ฉันจ่าย 100 ที่เหลือพวกแกหารกัน"
+  // ถ้า field นี้มีค่า ระบบจะไม่ดู weight
+  fixedAmount Decimal? @db.Decimal(10, 2)
+
+  // Constraint: 1 เมนู จับคู่ 1 คน ได้แค่ครั้งเดียว
+  @@unique([itemId, memberId])
+  @@index([itemId])
+}
+
+// ========================================================
+// 8. ENUMS (ตัวเลือกคงที่)
+// ========================================================
+
+enum BillStatus {
+  DRAFT // สร้างแล้ว แต่ยังไม่เริ่มทำอะไร
+  OCR_PROCESSING // กำลังรอ AI อ่านรูป
+  SPLITTING // เปิดให้ทุกคนเข้ามาเลือกรายการอาหาร
+  COMPLETED // สรุปยอดแล้ว (ห้ามแก้ไขรายการ) พร้อมให้โอน
+  CANCELLED // ยกเลิกบิล
+}
+
+enum RoundingMode {
+  NONE // ทศนิยมเป๊ะๆ (100.55)
+  UP // ปัดขึ้นเสมอ (100.1 -> 101) *เจ้าของบิลได้กำไร
+  DOWN // ปัดลงเสมอ (100.9 -> 100) *ยอมขาดทุนเศษ
+  NEAREST // ปัดตามหลักคณิตศาสตร์
+}
+
+enum ItemType {
+  FOOD // อาหาร
+  BEVERAGE // เครื่องดื่มไม่มีแอลกอฮอล์
+  ALCOHOL // เผื่อร้านคิด VAT/SC ต่างจากอาหาร
+  DISCOUNT // รายการส่วนลด
+  OTHER // รายการอื่นๆ
+}
