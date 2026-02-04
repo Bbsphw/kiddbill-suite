@@ -21,6 +21,13 @@ interface AddItemDto {
   quantity: number;
 }
 
+interface UpdateItemDto {
+  id: string;
+  name?: string;
+  price?: number;
+  quantity?: number;
+}
+
 // --- 1. Bill Hooks ---
 
 export const useCreateBill = () => {
@@ -125,6 +132,26 @@ export const useDeleteBillItem = (billId: string) => {
     onSuccess: () => {
       toast.success("ลบรายการแล้ว 🗑️");
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+    },
+  });
+};
+
+export const useUpdateBillItem = (billId: string) => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateItemDto) => {
+      const { id, ...body } = data;
+      const res = await api.patch(`/bill-items/${id}`, body);
+      return res.data;
+    },
+    onSuccess: () => {
+      // Invalidate เพื่อให้ Grand Total คำนวณใหม่
+      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+    },
+    onError: (error: any) => {
+      toast.error("แก้ไขรายการไม่สำเร็จ");
     },
   });
 };
