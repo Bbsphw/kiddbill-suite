@@ -5,15 +5,18 @@ export interface BillItem {
   name: string;
   price: number;
   quantity: number;
-  totalPrice: number;
+  totalPrice: number; // คำนวณเป็น string/decimal จาก backend แต่ใน frontend อาจจะแปลงเป็น number
   billId: string;
+  type?: "FOOD" | "BEVERAGE" | "OTHER";
 }
 
 export interface BillMember {
   id: string;
-  userId: string;
+  userId: string | null; // null = Guest, string = Registered User
   name: string;
   isPaid: boolean;
+  netAmountToPay?: number; // ยอดที่ต้องจ่าย (ถ้า backend คำนวณมาให้)
+  billId: string;
 }
 
 export interface Bill {
@@ -24,5 +27,10 @@ export interface Bill {
   ownerId: string;
   items: BillItem[];
   members: BillMember[];
+  vatRate: number;
+  serviceChargeRate: number;
+  isVatIncluded: boolean;
+  isServiceChargeIncluded: boolean;
   createdAt: string;
+  updatedAt: string;
 }

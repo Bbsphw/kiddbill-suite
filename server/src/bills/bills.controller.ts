@@ -17,16 +17,13 @@ import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('bills')
-@UseGuards(ClerkAuthGuard)
+@UseGuards(ClerkAuthGuard) // 🛡️ บังคับ Login
 export class BillsController {
   constructor(private readonly billsService: BillsService) {}
 
   @Post()
-  create(
-    @CurrentUser() user: { id: string },
-    @Body() createBillDto: CreateBillDto,
-  ) {
-    return this.billsService.create(user.id, createBillDto);
+  create(@CurrentUser() user: { id: string }, @Body() dto: CreateBillDto) {
+    return this.billsService.create(user.id, dto);
   }
 
   @Get()
@@ -43,9 +40,14 @@ export class BillsController {
   update(
     @Param('id') id: string,
     @CurrentUser() user: { id: string },
-    @Body() updateBillDto: UpdateBillDto,
+    @Body() dto: UpdateBillDto,
   ) {
-    return this.billsService.update(id, user.id, updateBillDto);
+    return this.billsService.update(id, user.id, dto);
+  }
+
+  @Patch(':id/close') // ✅ API ปิดบิล
+  close(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.billsService.close(id, user.id);
   }
 
   @Delete(':id')
@@ -53,7 +55,7 @@ export class BillsController {
     return this.billsService.remove(id, user.id);
   }
 
-  @Get(':id/summary')
+  @Get(':id/summary') // ✅ API ดูยอดเงิน
   getSummary(@Param('id') id: string) {
     return this.billsService.getSummary(id);
   }

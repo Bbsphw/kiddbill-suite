@@ -1,3 +1,5 @@
+// server/src/app.controller.spec.ts
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -15,8 +17,10 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return health check status', () => {
+      const result = appController.getHealthCheck();
+      expect(result).toHaveProperty('status', 'ok');
+      expect(result).toHaveProperty('message');
     });
   });
 });

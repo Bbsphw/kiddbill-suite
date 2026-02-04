@@ -1,3 +1,5 @@
+// server/src/ocr/ocr.service.spec.ts
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { OcrService } from './ocr.service';
 

@@ -1,39 +1,39 @@
+// server/src/main.ts
+
 import * as dotenv from 'dotenv';
-dotenv.config(); // <--- 1. ใส่บรรทัดนี้เป็นบรรทัดแรกๆ เลย!
+dotenv.config(); // โหลด .env ก่อนเพื่อน
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const logger = new Logger('Bootstrap');
 
-  // --- Debug Start ---
-  // console.log('------------------------------------------------');
-  // console.log(
-  //   'Loaded Env Keys:',
-  //   Object.keys(process.env).filter(
-  //     (k) => k.startsWith('CLERK') || k === 'DATABASE_URL',
-  //   ),
-  // );
-  // console.log(
-  //   'JWT Key Length:',
-  //   process.env.CLERK_JWT_KEY ? process.env.CLERK_JWT_KEY.length : '0',
-  // );
-  // console.log('------------------------------------------------');
-  // --- Debug End ---
+  // 🛡️ Global Validation Pipe (สำคัญมาก!)
+  // ช่วยกรองข้อมูลขยะที่ส่งมาเกิน DTO ทิ้งไป (whitelist: true)
+  // และแปลง Type อัตโนมัติ (transform: true)
+  app.useGlobalPipes(new ZodValidationPipe());
 
+  // 🌐 CORS Setup (ความปลอดภัย)
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'], // อนุญาตเฉพาะ Web ของเรา
+    origin: [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      // 'https://your-production-domain.com' // ใส่เพิ่มตอน Deploy จริง
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
+    credentials: true, // อนุญาตให้ส่ง Cookie/Auth Header ข้ามโดเมน
   });
 
-  // await app.listen(process.env.PORT ?? 3000);
-  await app.listen(process.env.PORT ?? 3001);
-  console.log(`Application is running on: ${await app.getUrl()}`);
-  // console.log(
-  //   'JWT Key Check:',
-  //   process.env.CLERK_JWT_KEY ? 'Loaded ✅' : 'Missing ❌',
-  // );
+  // 🚀 Start Server
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
+
+  logger.log(`🚀 Application is running on: ${await app.getUrl()}`);
+  logger.log(`⭐️ Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 bootstrap();

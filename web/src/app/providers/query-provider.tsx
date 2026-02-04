@@ -18,6 +18,7 @@ export default function QueryProvider({
           queries: {
             staleTime: 60 * 1000, // ข้อมูลถือว่าสดใหม่ 1 นาที (ไม่ fetch ซ้ำ)
             retry: 1, // ถ้า error ให้ลองใหม่แค่ 1 ครั้งพอ
+            refetchOnWindowFocus: false, // ปิดการ fetch ใหม่ทุกครั้งที่สลับหน้าจอ (ลดภาระ Server)
           },
         },
       }),
@@ -26,7 +27,7 @@ export default function QueryProvider({
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <Toaster position="top-center" richColors /> {/* ตัวแจ้งเตือนสวยๆ */}
+      <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
   );
 }
