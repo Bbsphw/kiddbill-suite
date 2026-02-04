@@ -1,3 +1,5 @@
+// server/src/ocr/ocr.controller.spec.ts
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { OcrController } from './ocr.controller';
 

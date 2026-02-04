@@ -7,7 +7,7 @@ export const JoinBillSchema = z.object({
   joinCode: z
     .string()
     .length(6, 'Join code must be 6 characters')
-    .toUpperCase(),
+    .toUpperCase(), // บังคับตัวใหญ่เสมอ
 });
 
 export class JoinBillDto extends createZodDto(JoinBillSchema) {}

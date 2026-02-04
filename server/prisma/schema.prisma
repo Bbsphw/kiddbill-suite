@@ -5,9 +5,9 @@
 // ========================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   // output          = "../generated/client"
-  // previewFeatures = ["driverAdapters"]
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -223,6 +223,10 @@ model BillMember {
   bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
 
   splits ItemSplit[]
+
+  // (Timestamp)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Constraint: User 1 คน ห้ามเข้าบิลเดิมซ้ำ (ป้องกันชื่อซ้ำ)
   @@unique([billId, userId])

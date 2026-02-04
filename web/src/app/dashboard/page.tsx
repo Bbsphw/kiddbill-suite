@@ -6,23 +6,28 @@ import { useUser, UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useMyBills } from "@/hooks/use-bills";
 import { CreateBillDialog } from "@/components/create-bill-dialog";
-import { JoinBillDialog } from "@/components/join-bill-dialog"; // Import อันใหม่
-
+import { JoinBillDialog } from "@/components/join-bill-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, Receipt, Calendar } from "lucide-react";
 import Link from "next/link";
-import { format } from "date-fns"; // (ถ้ายังไม่มีลง pnpm add date-fns)
+import { format } from "date-fns";
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-
-  // ดึงข้อมูลบิล
   const { data: bills, isLoading } = useMyBills();
 
-  // Loading State (User Check)
-  if (!isLoaded) return null;
+  // 1. Loading State (Auth)
+  if (!isLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  // 2. Not Logged In
   if (!user) {
     router.push("/sign-in");
     return null;
@@ -37,31 +42,29 @@ export default function DashboardPage() {
             KiddBill 💸
           </h1>
           <p className="text-gray-500 text-sm">
-            สวัสดีคุณ {user.firstName || "เศรษฐีใหม่"}!
+            ยินดีต้อนรับคุณ {user.firstName || user.username || "เพื่อนใหม่"}
           </p>
         </div>
         <UserButton />
       </header>
 
       <main className="mx-auto max-w-5xl space-y-8">
-        {/* Action Grid (ปุ่มสร้าง/เข้าห้อง) */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-4">
-          {/* ปุ่ม 1: สร้างบิล */}
-          <Card className="hover:shadow-lg transition-all border-dashed border-2 border-indigo-200 bg-indigo-50/30 h-40 flex items-center justify-center">
+        {/* Action Buttons */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          <Card className="hover:shadow-lg transition-all border-dashed border-2 border-indigo-200 bg-indigo-50/30 h-32 md:h-40 flex items-center justify-center">
             <CardContent className="w-full h-full p-0 flex items-center justify-center">
               <CreateBillDialog />
             </CardContent>
           </Card>
 
-          {/* ปุ่ม 2: เข้าห้อง (New!) */}
-          <Card className="hover:shadow-lg transition-all border-dashed border-2 border-orange-200 bg-orange-50/30 h-40 flex items-center justify-center">
+          <Card className="hover:shadow-lg transition-all border-dashed border-2 border-orange-200 bg-orange-50/30 h-32 md:h-40 flex items-center justify-center">
             <CardContent className="w-full h-full p-0 flex items-center justify-center">
               <JoinBillDialog />
             </CardContent>
           </Card>
         </div>
 
-        {/* My Bills List */}
+        {/* Bills List */}
         <div>
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <Receipt className="text-indigo-600" /> บิลล่าสุดของคุณ
@@ -73,8 +76,9 @@ export default function DashboardPage() {
             </div>
           ) : bills?.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <p className="text-gray-400 mb-2">ยังไม่มีบิลเลย...</p>
-              <p className="text-sm text-gray-500">
+              <Receipt className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+              <p className="text-gray-500 font-medium">ยังไม่มีบิลเลย...</p>
+              <p className="text-sm text-gray-400">
                 สร้างบิลใหม่ หรือขอ Code เพื่อนเข้าห้องได้เลย!
               </p>
             </div>
@@ -82,10 +86,10 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {bills?.map((bill) => (
                 <Link href={`/bill/${bill.id}`} key={bill.id}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-indigo-500 h-full">
+                  <Card className="hover:shadow-md transition-all cursor-pointer border-l-4 border-l-indigo-500 h-full group">
                     <CardContent className="p-5 space-y-3">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-gray-900 truncate pr-2">
+                        <h3 className="font-bold text-gray-900 truncate pr-2 group-hover:text-indigo-600 transition-colors">
                           {bill.title}
                         </h3>
                         <Badge
@@ -109,7 +113,6 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Users size={14} />
-                          {/* (API อาจจะต้อง return members count มาด้วย ถ้าไม่มีใช้ 1 ไปก่อน) */}
                           <span>{bill.members?.length || 1} คน</span>
                         </div>
                       </div>

@@ -1,3 +1,5 @@
+// server/src/bank-accounts/bank-accounts.controller.ts
+
 import {
   Controller,
   Get,
@@ -13,7 +15,7 @@ import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('bank-accounts')
-@UseGuards(ClerkAuthGuard)
+@UseGuards(ClerkAuthGuard) // 🛡️ บังคับ Login ทุก Route
 export class BankAccountsController {
   constructor(private readonly bankAccountsService: BankAccountsService) {}
 

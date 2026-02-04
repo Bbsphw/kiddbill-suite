@@ -3,7 +3,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { CreateBillItemSchema } from './create-bill-item.dto';
 
-// Omit 'billId' because we shouldn't move an item to another bill
+// ตัด billId ออก (ห้ามย้ายรายการข้ามบิล) และทำให้ field อื่นเป็น Optional
 const UpdateBillItemSchema = CreateBillItemSchema.omit({
   billId: true,
 }).partial();

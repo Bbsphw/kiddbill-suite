@@ -1,3 +1,5 @@
+// server/src/splits/splits.module.ts
+
 import { Module } from '@nestjs/common';
 import { SplitsService } from './splits.service';
 import { SplitsController } from './splits.controller';

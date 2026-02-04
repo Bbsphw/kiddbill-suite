@@ -5,29 +5,41 @@ import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
-  // 1. ตรวจสอบ Signature (Security)
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+
   if (!WEBHOOK_SECRET) {
-    throw new Error(
+    console.error("❌ Missing CLERK_WEBHOOK_SECRET");
+    return new Response(
       "Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local",
+      {
+        status: 500,
+      },
     );
   }
 
+  // Get the headers
   const headerPayload = await headers();
   const svix_id = headerPayload.get("svix-id");
   const svix_timestamp = headerPayload.get("svix-timestamp");
   const svix_signature = headerPayload.get("svix-signature");
 
+  // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    return new Response("Error occured -- no svix headers", { status: 400 });
+    return new Response("Error occured -- no svix headers", {
+      status: 400,
+    });
   }
 
+  // Get the body
   const payload = await req.json();
   const body = JSON.stringify(payload);
 
+  // Create a new Svix instance with your secret.
   const wh = new Webhook(WEBHOOK_SECRET);
+
   let evt: WebhookEvent;
 
+  // Verify the payload with the headers
   try {
     evt = wh.verify(body, {
       "svix-id": svix_id,
@@ -36,44 +48,52 @@ export async function POST(req: Request) {
     }) as WebhookEvent;
   } catch (err) {
     console.error("Error verifying webhook:", err);
-    return new Response("Error occured", { status: 400 });
+    return new Response("Error occured", {
+      status: 400,
+    });
   }
 
-  // 2. ดึงข้อมูล User
   const eventType = evt.type;
+  console.log(`🔔 Webhook received! Type: ${eventType}`);
+
   if (eventType === "user.created" || eventType === "user.updated") {
-    const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+    const { id, email_addresses, first_name, last_name, image_url, username } =
+      evt.data;
 
-    // หา email หลัก
-    const primaryEmail = email_addresses.find(
-      (email) => email.id === evt.data.primary_email_address_id,
-    )?.email_address;
+    // หา Email หลัก
+    const primaryEmail =
+      email_addresses.find(
+        (email) => email.id === evt.data.primary_email_address_id,
+      )?.email_address || email_addresses[0]?.email_address;
 
-    // 3. ยิงไปหา Server NestJS (Port 3001)
-    // ตรงนี้เราใช้ fetch เพื่อคุยกันระหว่าง Server-to-Server
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
     try {
-      await fetch(`${backendUrl}/users`, {
-        // สมมติว่า route คือ /users
+      console.log(`🚀 Syncing user ${id} to Backend...`);
+      const res = await fetch(`${backendUrl}/users/sync`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // อาจจะแนบ Secret Header เพื่อความปลอดภัยเพิ่มได้
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: id,
           email: primaryEmail,
           firstName: first_name,
           lastName: last_name,
+          username: username || `user_${id.slice(0, 8)}`,
           avatarUrl: image_url,
-          // map field อื่นๆ ตามต้องการ
         }),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`❌ Backend Sync Failed (${res.status}):`, errorText);
+        return new Response(`Backend Error: ${errorText}`, { status: 400 });
+      }
+
+      console.log("✅ User Sync Success!");
     } catch (error) {
-      console.error("Failed to sync user to backend:", error);
-      return new Response("Failed to sync", { status: 500 });
+      console.error("❌ Network Error during sync:", error);
+      return new Response("Network Error", { status: 500 });
     }
   }
 

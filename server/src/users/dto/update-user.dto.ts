@@ -1,4 +1,13 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserDto } from './create-user.dto';
+// server/src/users/dto/update-user.dto.ts
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {}
+import { createZodDto } from 'nestjs-zod';
+import { z } from 'zod';
+
+export const UpdateUserSchema = z.object({
+  username: z.string().min(3).max(30).optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  // Email เราจะไม่ให้แก้ที่นี่ (ควรแก้ที่ Clerk แล้ว Sync ลงมา)
+});
+
+export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}

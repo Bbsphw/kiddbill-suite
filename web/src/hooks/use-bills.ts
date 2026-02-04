@@ -1,137 +1,130 @@
 // web/src/hooks/use-bills.ts
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, setAuthToken } from "@/lib/api";
-import { useAuth } from "@clerk/nextjs";
+import { useApiClient } from "@/lib/api";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Bill } from "@/types/bill";
 
-// --- Hook: ดึงข้อมูลบิลเดียว (GET) ---
-export function useBill(billId: string) {
-  const { getToken } = useAuth();
+// --- DTO Interfaces ---
+interface CreateBillDto {
+  title: string;
+  vatRate?: number;
+  serviceChargeRate?: number;
+  isVatIncluded?: boolean;
+  promptPayNumber?: string;
+}
 
-  return useQuery({
-    queryKey: ["bill", billId],
-    queryFn: async () => {
-      const token = await getToken();
-      if (token) setAuthToken(token);
+interface AddItemDto {
+  name: string;
+  price: number;
+  quantity: number;
+}
 
-      const res = await api.get<Bill>(`/bills/${billId}`);
+// --- 1. Bill Hooks ---
+
+export const useCreateBill = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (data: CreateBillDto) => {
+      const res = await api.post("/bills", data);
       return res.data;
     },
-    enabled: !!billId,
-    retry: 1,
-  });
-}
-
-// --- Hook: สร้างบิลใหม่ (POST) ---
-// *ตัวที่หายไป กลับมาแล้วครับ*
-export function useCreateBill() {
-  const { getToken } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (title: string) => {
-      const token = await getToken();
-      if (token) setAuthToken(token);
-      // ส่งข้อมูล title ไปสร้างบิล
-      return api.post("/bills", { title });
-    },
-    onSuccess: () => {
-      toast.success("สร้างบิลเสร็จแล้ว! 🚀");
-      // ถ้ามีหน้า List บิล ก็ควร Invalidate ตรงนี้ด้วย
-      // queryClient.invalidateQueries({ queryKey: ['bills'] });
+    onSuccess: (data) => {
+      toast.success("สร้างบิลสำเร็จ! 🎉");
+      queryClient.invalidateQueries({ queryKey: ["my-bills"] });
+      // Redirect ไปหน้าบิล
+      router.push(`/bill/${data.id}`);
     },
     onError: (error: any) => {
-      console.error(error);
-      toast.error("สร้างบิลไม่สำเร็จ ลองใหม่นะ");
+      toast.error(error.response?.data?.message || "สร้างบิลไม่สำเร็จ");
     },
   });
-}
+};
 
-// --- Hook: เพิ่มรายการอาหาร (POST) ---
-export function useAddBillItem(billId: string) {
-  const { getToken } = useAuth();
+export const useMyBills = () => {
+  const api = useApiClient();
+  return useQuery<Bill[]>({
+    queryKey: ["my-bills"],
+    queryFn: async () => {
+      const res = await api.get("/bills");
+      return res.data;
+    },
+  });
+};
+
+export const useJoinBill = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (joinCode: string) => {
+      const res = await api.post("/bill-members/join", { joinCode });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success("เข้าร่วมสำเร็จ!");
+      queryClient.invalidateQueries({ queryKey: ["my-bills"] });
+      // Backend ควรส่ง billId กลับมา หรือ member object ที่มี billId
+      const billId = data.billId || data.bill?.id;
+      if (billId) router.push(`/bill/${billId}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "ไม่พบห้องนี้");
+    },
+  });
+};
+
+// 1. ดึงรายละเอียดบิลเดียว (ใช้ในหน้า /bill/[id])
+export const useBill = (id: string) => {
+  const api = useApiClient();
+  return useQuery<Bill>({
+    queryKey: ["bill", id],
+    queryFn: async () => {
+      const res = await api.get(`/bills/${id}`);
+      return res.data;
+    },
+    enabled: !!id, // ทำงานเมื่อมี id เท่านั้น
+  });
+};
+
+// 2. เพิ่มรายการอาหาร
+export const useAddBillItem = (billId: string) => {
+  const api = useApiClient();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: {
-      name: string;
-      price: number;
-      quantity: number;
-    }) => {
-      const token = await getToken();
-      if (token) setAuthToken(token);
-
-      return api.post("/bill-items", { ...data, billId });
+    mutationFn: async (data: AddItemDto) => {
+      const res = await api.post("/bill-items", { ...data, billId });
+      return res.data;
     },
     onSuccess: () => {
-      toast.success("เพิ่มรายการแล้ว! 😋");
+      toast.success("เพิ่มรายการแล้ว 🍗");
+      // Refresh ข้อมูลบิลทันที
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
     },
     onError: (error: any) => {
-      console.error(error);
-      toast.error("เพิ่มรายการไม่สำเร็จจ้า");
+      toast.error("เพิ่มรายการไม่สำเร็จ");
     },
   });
-}
+};
 
-// --- Hook: ลบรายการอาหาร (DELETE) ---
-export function useDeleteBillItem(billId: string) {
-  const { getToken } = useAuth();
+// 3. ลบรายการอาหาร
+export const useDeleteBillItem = (billId: string) => {
+  const api = useApiClient();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (itemId: string) => {
-      const token = await getToken();
-      if (token) setAuthToken(token);
-      return api.delete(`/bill-items/${itemId}`);
+      await api.delete(`/bill-items/${itemId}`);
     },
     onSuccess: () => {
-      toast.success("ลบรายการแล้ว");
+      toast.success("ลบรายการแล้ว 🗑️");
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
     },
-    onError: () => toast.error("ลบไม่ได้จ้า"),
   });
-}
-
-// [เพิ่ม] Hook: ดึงรายการบิลทั้งหมดของฉัน
-export function useMyBills() {
-  const { getToken } = useAuth();
-
-  return useQuery({
-    queryKey: ["bills"], // Key สำหรับ Cache
-    queryFn: async () => {
-      const token = await getToken();
-      if (token) setAuthToken(token);
-
-      const res = await api.get<Bill[]>("/bills");
-      return res.data;
-    },
-  });
-}
-
-// [เพิ่ม] Hook: ขอเข้าร่วมบิล (Join)
-export function useJoinBill() {
-  const { getToken } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (joinCode: string) => {
-      const token = await getToken();
-      if (token) setAuthToken(token);
-      // ส่ง joinCode ไปที่ API
-      return api.post("/bill-members/join", { joinCode });
-    },
-    onSuccess: () => {
-      toast.success("เข้าร่วมบิลสำเร็จ! 🎉");
-      // สั่งให้โหลดรายการบิลใหม่ทันที จะได้เห็นบิลที่เพิ่งเข้าโผล่มา
-      queryClient.invalidateQueries({ queryKey: ["bills"] });
-    },
-    onError: (error: any) => {
-      // ดึง Error Message จาก Server มาโชว์
-      const msg = error.response?.data?.message || "เข้าร่วมไม่สำเร็จ";
-      toast.error(msg);
-    },
-  });
-}
+};
