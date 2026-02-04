@@ -159,9 +159,13 @@ export default function BillDetailPage() {
                 <p className="text-sm">ยังไม่มีรายการอาหาร</p>
               </div>
             ) : (
-              // 👇 เปลี่ยนมาใช้ Component ใหม่ตรงนี้
               bill.items.map((item) => (
-                <BillItemRow key={item.id} item={item} billId={id} />
+                <BillItemRow
+                  key={item.id}
+                  item={item}
+                  billId={id}
+                  members={bill.members}
+                />
               ))
             )}
           </CardContent>

@@ -28,6 +28,17 @@ interface UpdateItemDto {
   quantity?: number;
 }
 
+// เพิ่ม Interface สำหรับ Payload
+interface SplitEntry {
+  memberId: string;
+  weight: number;
+}
+
+interface AssignSplitDto {
+  itemId: string;
+  splits: SplitEntry[];
+}
+
 // --- 1. Bill Hooks ---
 
 export const useCreateBill = () => {
@@ -173,6 +184,26 @@ export const useAddGuestMember = (billId: string) => {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "เพิ่มสมาชิกไม่สำเร็จ");
+    },
+  });
+};
+
+export const useAssignSplit = (billId: string) => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: AssignSplitDto) => {
+      const res = await api.post("/splits/assign", data);
+      return res.data;
+    },
+    onSuccess: () => {
+      // Refresh เพื่อให้หน้าบิลอัปเดตว่าใครหารบ้าง
+      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      toast.success("บันทึกเรียบร้อย ✅");
+    },
+    onError: (error: any) => {
+      toast.error("บันทึกไม่สำเร็จ");
     },
   });
 };
