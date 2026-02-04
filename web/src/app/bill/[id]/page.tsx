@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useBill, useAddBillItem } from "@/hooks/use-bills"; // 👈 ลบ useDeleteBillItem ออกได้เลย เพราะย้ายไปใน Row แล้ว
 import { ScanReceiptDialog } from "@/components/scan-receipt-dialog";
 import { BillItemRow } from "@/components/bill-item-row"; // 👈 Import ตัวใหม่
+import { BillMembersDialog } from "@/components/bill-members-dialog";
 
 // UI Components
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -125,9 +126,11 @@ export default function BillDetailPage() {
               </Badge>
             </div>
             <div className="flex gap-2 mt-2">
-              <Badge variant="secondary" className="font-normal text-gray-600">
-                <Users size={12} className="mr-1" /> {bill.members.length}
-              </Badge>
+              <BillMembersDialog
+                billId={bill.id}
+                members={bill.members}
+                ownerId={bill.ownerId}
+              />
               <div
                 onClick={copyJoinCode}
                 className="cursor-pointer flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100 hover:bg-indigo-100"

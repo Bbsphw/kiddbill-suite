@@ -155,3 +155,24 @@ export const useUpdateBillItem = (billId: string) => {
     },
   });
 };
+
+export const useAddGuestMember = (billId: string) => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (name: string) => {
+      // ยิง API POST /bill-members
+      const res = await api.post("/bill-members", { billId, name });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("เพิ่มสมาชิกเรียบร้อย! 🙋‍♂️");
+      // Refresh ข้อมูลบิลเพื่ออัปเดตรายชื่อคน
+      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "เพิ่มสมาชิกไม่สำเร็จ");
+    },
+  });
+};
