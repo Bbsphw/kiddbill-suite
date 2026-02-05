@@ -273,6 +273,11 @@ export class BillsService {
       },
       members: summary,
       grandTotal: summary.reduce((sum, m) => sum + m.netAmount, 0),
+
+      promptPayNumber: bill.promptPayNumber,
+      promptPayName: bill.promptPayName,
+      bankName: bill.bankName,
+      bankAccount: bill.bankAccount,
     };
   }
 }
