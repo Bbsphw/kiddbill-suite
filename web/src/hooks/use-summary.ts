@@ -57,3 +57,21 @@ export const useCloseBill = (billId: string) => {
     onError: () => toast.error("ปิดบิลไม่สำเร็จ"),
   });
 };
+
+// 4. เจ้าของกดยืนยันยอด (Verify)
+export const useVerifyPayment = (billId: string) => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (memberId: string) => {
+      const res = await api.patch(`/bill-members/${memberId}/verify`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bill-summary", billId] });
+      toast.success("ยืนยันยอดเงินแล้ว ✅");
+    },
+    onError: () => toast.error("ยืนยันไม่สำเร็จ"),
+  });
+};
