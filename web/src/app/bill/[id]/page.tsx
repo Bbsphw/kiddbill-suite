@@ -29,6 +29,7 @@ import {
   Copy,
   ChefHat,
   Wallet,
+  ArrowRight,
 } from "lucide-react";
 
 export default function BillDetailPage() {
@@ -125,6 +126,16 @@ export default function BillDetailPage() {
                 {bill.status}
               </Badge>
             </div>
+
+            <Link href={`/bill/${id}/summary`}>
+              <Button
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 shadow-sm gap-1"
+              >
+                สรุปยอด <ArrowRight size={16} />
+              </Button>
+            </Link>
+
             <div className="flex gap-2 mt-2">
               <BillMembersDialog
                 billId={bill.id}
