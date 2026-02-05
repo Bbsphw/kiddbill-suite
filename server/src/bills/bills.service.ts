@@ -97,7 +97,7 @@ export class BillsService {
     const bill = await this.prisma.bill.findUnique({
       where: { id },
       include: {
-        items: { orderBy: { orderIndex: 'asc' } }, // เรียงรายการตามลำดับ
+        items: { orderBy: { orderIndex: 'asc' }, include: { splits: true } },
         members: true,
         owner: { select: { id: true, firstName: true, avatarUrl: true } },
       },

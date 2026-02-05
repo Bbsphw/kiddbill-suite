@@ -1,5 +1,10 @@
 // web/src/types/bill.ts
 
+export interface ItemSplit {
+  memberId: string;
+  weight: number;
+}
+
 export interface BillItem {
   id: string;
   name: string;
@@ -8,6 +13,7 @@ export interface BillItem {
   totalPrice: number; // คำนวณเป็น string/decimal จาก backend แต่ใน frontend อาจจะแปลงเป็น number
   billId: string;
   type?: "FOOD" | "BEVERAGE" | "OTHER";
+  splits?: ItemSplit[]; // 👈 เพิ่มบรรทัดนี้ (ใส่ ? ไว้เผื่อบางที backend ไม่ส่งมา)
 }
 
 export interface BillMember {
