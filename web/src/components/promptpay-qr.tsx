@@ -17,40 +17,23 @@ interface PromptPayQRProps {
 export function PromptPayQR({ id, amount, className }: PromptPayQRProps) {
   const { payload, error, isBankNum } = useMemo(() => {
     if (!id) return { payload: null, error: "ไม่พบข้อมูล" };
-
     const cleanId = id.replace(/[^0-9]/g, "");
-
-    // เช็คความยาว: PromptPay ปกติคือ 10 (มือถือ) หรือ 13 (บัตร ปชช) หรือ 15 (E-Wallet)
-    // ถ้าความยาวแปลกๆ (เช่น 10-12 หลักของเลขบัญชีธนาคาร) อาจจะไม่ใช่ PromptPay
     const isValidPromptPayLength = [10, 13, 15].includes(cleanId.length);
-
-    if (!isValidPromptPayLength) {
-      // สันนิษฐานว่าเป็นเลขบัญชีธนาคารธรรมดา (ไม่ Gen QR)
-      return {
-        payload: null,
-        error: "เลขบัญชีธนาคารไม่รองรับการสร้าง QR",
-        isBankNum: true,
-      };
-    }
-
+    if (!isValidPromptPayLength)
+      return { payload: null, error: "เลขบัญชีไม่รองรับ QR", isBankNum: true };
     try {
-      // ✅ จุดสำคัญ: ใส่ amount ลงไปตรงนี้ คือการทำ Dynamic QR ให้แต่ละคน
-      const qrCode = generatePayload(cleanId, { amount });
-      return { payload: qrCode, error: null };
+      return { payload: generatePayload(cleanId, { amount }), error: null };
     } catch (err) {
-      return { payload: null, error: "รูปแบบไม่ถูกต้อง" };
+      return { payload: null, error: "Format ผิด" };
     }
   }, [id, amount]);
 
-  // กรณีเป็นเลขบัญชีธนาคาร (ไม่โชว์ Error แดง แต่ไม่วาด QR)
   if (isBankNum) return null;
-
-  // กรณี Error จริงๆ
-  if (error || !payload) {
+  if (error || !payload)
     return (
       <div
         className={cn(
-          "flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl border border-dashed text-gray-400 text-xs h-[180px] w-[180px] text-center",
+          "flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-dashed text-slate-400 text-xs h-[180px] w-[180px] text-center",
           className,
         )}
       >
@@ -58,12 +41,11 @@ export function PromptPayQR({ id, amount, className }: PromptPayQRProps) {
         <span>{error}</span>
       </div>
     );
-  }
 
   return (
     <div
       className={cn(
-        "p-4 bg-white rounded-xl shadow-sm border border-gray-100 inline-block",
+        "p-4 bg-white rounded-2xl shadow-sm border border-slate-100 inline-block",
         className,
       )}
     >
@@ -82,10 +64,9 @@ export function PromptPayQR({ id, amount, className }: PromptPayQRProps) {
         />
       </div>
       <div className="text-center mt-3 space-y-1">
-        <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 font-mono tracking-widest uppercase">
+        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400 font-mono tracking-widest uppercase">
           <QrCode size={10} /> Scan to Pay
         </div>
-        {/* แสดงยอดเงินใต้ QR เพื่อยืนยัน */}
         {amount !== undefined && amount > 0 && (
           <p className="text-lg font-bold text-indigo-600">
             ฿
