@@ -16,6 +16,7 @@ export interface MemberSummary {
   netAmount: number; // ยอดสุทธิที่ต้องจ่าย (ปัดเศษแล้ว)
   items: SummaryItem[];
   isPaid: boolean; // (ต้องเพิ่ม field นี้ใน backend response หรือดึงจาก member object)
+  verifiedAt?: string | null;
 }
 
 export interface BillConfig {

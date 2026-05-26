@@ -14,13 +14,12 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { PlusCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export function CreateBillDialog() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const { mutate, isPending } = useCreateBill();
-
   const handleCreate = () => {
     mutate(
       { title: title || "มื้อนี้พี่เลี้ยงเอง (แต่หารนะ)" },
@@ -36,17 +35,9 @@ export function CreateBillDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <div className="flex flex-col items-center justify-center h-full w-full cursor-pointer hover:bg-indigo-50/80 transition-colors rounded-lg group">
-          <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mb-4 shadow-sm group-hover:scale-110 transition-transform">
-            <PlusCircle size={28} />
-          </div>
-          <div className="text-center">
-            <h3 className="font-semibold text-lg text-indigo-900">
-              สร้างบิลใหม่
-            </h3>
-            <p className="text-sm text-indigo-600/80">เริ่มหารเงินกันเลย</p>
-          </div>
-        </div>
+        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md shadow-indigo-200">
+          เริ่มเลย 👉
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -70,7 +61,7 @@ export function CreateBillDialog() {
           >
             {isPending ? (
               <Loader2 className="animate-spin mr-2 h-4 w-4" />
-            ) : null}
+            ) : null}{" "}
             สร้างเลย 🚀
           </Button>
         </div>
