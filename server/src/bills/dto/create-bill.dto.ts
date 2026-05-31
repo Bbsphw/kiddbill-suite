@@ -13,6 +13,11 @@ export const CreateBillSchema = z.object({
   isVatIncluded: z.boolean().optional(),
   isServiceChargeIncluded: z.boolean().optional(),
   currency: z.string().length(3).optional().default('THB'),
+
+  promptPayNumber: z.string().optional(),
+  promptPayName: z.string().optional(),
+  bankName: z.string().optional(),
+  bankAccount: z.string().optional(),
 });
 
 export class CreateBillDto extends createZodDto(CreateBillSchema) {}

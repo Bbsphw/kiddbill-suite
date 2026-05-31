@@ -39,4 +39,9 @@ export interface Bill {
   isServiceChargeIncluded: boolean;
   createdAt: string;
   updatedAt: string;
+
+  _count?: {
+    members: number;
+    items: number;
+  };
 }

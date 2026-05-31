@@ -31,22 +31,22 @@ export class BillItemsService {
       throw new ForbiddenException('You are not a member of this bill');
     }
 
-    // 3. 🔢 Auto Order Index: หาเลขลำดับล่าสุด แล้ว +1 (เพื่อให้รายการเรียงต่อกันสวยๆ)
+    // 3. 🔢 Auto Order Index: หาเลขลำดับล่าสุด แล้ว +1
     const lastItem = await this.prisma.billItem.findFirst({
       where: { billId: dto.billId },
-      orderBy: { orderIndex: 'desc' }, // เรียงมากไปน้อย
+      orderBy: { orderIndex: 'desc' },
     });
     const newOrderIndex = (lastItem?.orderIndex ?? 0) + 1;
 
-    // 4. บันทึก (พร้อมคำนวณ Total Price)
+    // 4. บันทึก
     return this.prisma.billItem.create({
       data: {
         billId: dto.billId,
         name: dto.name,
         price: dto.price,
         quantity: dto.quantity,
-        totalPrice: dto.price * dto.quantity, // 💰 Auto Calculate
-        orderIndex: newOrderIndex, // 🔢 Auto Index
+        totalPrice: dto.price * dto.quantity,
+        orderIndex: newOrderIndex,
         type: dto.type,
         applyVat: dto.applyVat,
         applyServiceCharge: dto.applyServiceCharge,
@@ -56,7 +56,6 @@ export class BillItemsService {
 
   // ✅ แก้ไขรายการ
   async update(id: string, userId: string, dto: UpdateBillItemDto) {
-    // 1. หา Item
     const item = await this.prisma.billItem.findUnique({
       where: { id },
       include: { bill: true },
@@ -64,23 +63,21 @@ export class BillItemsService {
 
     if (!item) throw new NotFoundException('Item not found');
 
-    // 2. เช็คสิทธิ์: ให้เฉพาะ Owner แก้ไขได้ (เพื่อความชัวร์)
-    // หรือถ้าจะให้คนสั่งแก้ได้ต้องเช็ค logic เพิ่ม แต่เริ่มที่ Owner ก่อนปลอดภัยสุด
+    // 🔒 Security Check: เฉพาะเจ้าของบิล
     if (item.bill.ownerId !== userId) {
       throw new ForbiddenException('Only bill owner can update items');
     }
 
-    // 3. คำนวณราคาใหม่ (ถ้ามีการแก้ราคาหรือจำนวน)
+    // คำนวณราคาใหม่
     const newPrice = dto.price ?? Number(item.price);
     const newQuantity = dto.quantity ?? item.quantity;
     const newTotalPrice = newPrice * newQuantity;
 
-    // 4. อัปเดต
     return this.prisma.billItem.update({
       where: { id },
       data: {
         ...dto,
-        totalPrice: newTotalPrice, // 💰 Recalculate
+        totalPrice: newTotalPrice,
       },
     });
   }
@@ -94,7 +91,7 @@ export class BillItemsService {
 
     if (!item) throw new NotFoundException('Item not found');
 
-    // เช็คสิทธิ์: เฉพาะ Owner
+    // 🔒 Security Check: เฉพาะเจ้าของบิล
     if (item.bill.ownerId !== userId) {
       throw new ForbiddenException('Only bill owner can delete items');
     }

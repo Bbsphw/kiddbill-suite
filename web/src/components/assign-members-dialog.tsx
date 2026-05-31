@@ -10,14 +10,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Check, Loader2, Users, User, X } from "lucide-react";
+import { Check, Loader2, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 interface AssignMembersDialogProps {
   open: boolean;
@@ -37,76 +35,52 @@ export function AssignMembersDialog({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const assignMutation = useAssignSplit(billId);
 
-  // --- 1. Logic Fix: State Synchronization ---
   useEffect(() => {
     if (open) {
-      // ตรวจสอบว่า item นี้เคยมีการหารหรือยัง?
-      // หมายเหตุ: เช็คว่า splits เป็น array หรือไม่ (ถ้า backend ไม่ส่ง splits มาเลย = ยังไม่เคยหาร)
-      const hasSplitsData = Array.isArray(item.splits);
-
-      if (hasSplitsData) {
-        // ✅ CASE A: เคยมีการบันทึกแล้ว (แม้จะเป็น Array ว่าง ก็ต้องเชื่อตามนั้น)
-        // ใช้ข้อมูลจาก Database เป็นหลัก 100%
-        const currentSplitIds = new Set(item.splits!.map((s) => s.memberId));
-
-        // *Edge Case:* ถ้า Database เป็นค่าว่างจริงๆ (เช่น ลบทุกคนออก)
-        // เราก็ต้องให้มันว่างตามนั้น ไม่ใช่ Auto Select All
-        setSelectedIds(currentSplitIds);
+      if (Array.isArray(item.splits)) {
+        setSelectedIds(new Set(item.splits.map((s) => s.memberId)));
       } else {
-        // ⚠️ CASE B: ของใหม่แกะกล่อง (Backend ยังไม่มี data splits)
-        // Default: ให้เลือกทุกคน (หารเท่า)
         setSelectedIds(new Set(members.map((m) => m.id)));
       }
     }
   }, [open, item, members]);
 
-  // --- Helpers ---
   const toggleMember = (memberId: string) => {
     const newSet = new Set(selectedIds);
-    if (newSet.has(memberId)) {
-      newSet.delete(memberId);
-    } else {
-      newSet.add(memberId);
-    }
+    if (newSet.has(memberId)) newSet.delete(memberId);
+    else newSet.add(memberId);
     setSelectedIds(newSet);
   };
 
   const selectAll = () => setSelectedIds(new Set(members.map((m) => m.id)));
   const clearAll = () => setSelectedIds(new Set());
-
-  // คำนวณยอดเงินคร่าวๆ ให้ User เห็นภาพ
-  const pricePerPerson = useMemo(() => {
-    if (selectedIds.size === 0) return 0;
-    return item.price / selectedIds.size;
-  }, [item.price, selectedIds.size]);
-
-  const handleSave = () => {
-    const splits = Array.from(selectedIds).map((memberId) => ({
-      memberId,
-      weight: 1,
-    }));
-
+  const pricePerPerson = useMemo(
+    () => (selectedIds.size === 0 ? 0 : item.price / selectedIds.size),
+    [item.price, selectedIds.size],
+  );
+  const handleSave = () =>
     assignMutation.mutate(
-      { itemId: item.id, splits },
       {
-        onSuccess: () => onOpenChange(false),
+        itemId: item.id,
+        splits: Array.from(selectedIds).map((memberId) => ({
+          memberId,
+          weight: 1,
+        })),
       },
+      { onSuccess: () => onOpenChange(false) },
     );
-  };
-
   const getInitials = (name: string) => name?.charAt(0).toUpperCase() || "?";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden bg-gray-50/50">
-        {/* Header */}
-        <div className="p-6 pb-4 bg-white border-b">
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden bg-slate-50/50">
+        <div className="p-6 pb-4 bg-white border-b border-slate-100">
           <DialogHeader>
             <DialogTitle className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 จัดการตัวหาร
               </span>
-              <span className="text-xl font-bold text-gray-900 truncate pr-4 leading-tight">
+              <span className="text-xl font-bold text-slate-900 truncate pr-4 leading-tight">
                 {item.name}
               </span>
             </DialogTitle>
@@ -114,21 +88,19 @@ export function AssignMembersDialog({
               <span className="font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
                 ฿{item.price.toLocaleString()}
               </span>
-              <span className="text-gray-400 text-xs">
+              <span className="text-slate-400 text-xs">
                 {selectedIds.size > 0
                   ? `หาร ${selectedIds.size} คน = ตกคนละ ฿${pricePerPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
                   : "ยังไม่ได้เลือกใคร"}
               </span>
             </DialogDescription>
           </DialogHeader>
-
-          {/* Quick Actions Bar */}
           <div className="flex gap-2 mt-4">
             <Button
               variant="outline"
               size="sm"
               onClick={selectAll}
-              className="flex-1 bg-white border-gray-200 text-gray-600 hover:text-indigo-600 hover:border-indigo-200"
+              className="flex-1 bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 shadow-sm"
             >
               <Users size={14} className="mr-2" /> เลือกทุกคน
             </Button>
@@ -136,19 +108,18 @@ export function AssignMembersDialog({
               variant="outline"
               size="sm"
               onClick={clearAll}
-              className="flex-1 bg-white border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-200"
+              className="flex-1 bg-white border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 shadow-sm"
             >
               <X size={14} className="mr-2" /> ล้าง
             </Button>
           </div>
         </div>
 
-        {/* Scrollable List */}
-        <div className="p-4 max-h-[50vh] overflow-y-auto bg-gray-50/50">
+        <div className="p-4 max-h-[50vh] overflow-y-auto bg-slate-50/50">
           {members.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-slate-400">
               <Users className="mx-auto h-10 w-10 mb-2 opacity-20" />
-              <p>ยังไม่มีสมาชิกในห้อง</p>
+              <p>ยังไม่มีสมาชิก</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -161,11 +132,10 @@ export function AssignMembersDialog({
                     className={cn(
                       "cursor-pointer flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 group relative",
                       isSelected
-                        ? "bg-white border-indigo-600 shadow-md scale-[1.01] z-10"
-                        : "bg-white border-gray-100 opacity-70 hover:opacity-100 hover:border-gray-300",
+                        ? "bg-white border-indigo-600 shadow-md scale-[1.01] z-10 ring-1 ring-indigo-600"
+                        : "bg-white border-slate-100 hover:border-slate-300",
                     )}
                   >
-                    {/* Avatar */}
                     <div className="relative">
                       <Avatar
                         className={cn(
@@ -180,7 +150,7 @@ export function AssignMembersDialog({
                             "font-bold text-sm",
                             isSelected
                               ? "bg-indigo-100 text-indigo-700"
-                              : "bg-gray-100 text-gray-500",
+                              : "bg-slate-100 text-slate-500",
                           )}
                         >
                           {getInitials(member.name)}
@@ -192,23 +162,16 @@ export function AssignMembersDialog({
                         </div>
                       )}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p
                         className={cn(
                           "text-sm font-semibold truncate",
-                          isSelected ? "text-gray-900" : "text-gray-500",
+                          isSelected ? "text-slate-900" : "text-slate-500",
                         )}
                       >
                         {member.name}
                       </p>
-                      <p className="text-[10px] text-gray-400">
-                        {isSelected ? "ร่วมหาร ✅" : "ไม่หาร"}
-                      </p>
                     </div>
-
-                    {/* Price Indicator (Visual Aid) */}
                     {isSelected && selectedIds.size > 0 && (
                       <div className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
                         ฿{Math.floor(pricePerPerson)}
@@ -221,8 +184,7 @@ export function AssignMembersDialog({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-white border-t">
+        <div className="p-4 bg-white border-t border-slate-100">
           <Button
             onClick={handleSave}
             disabled={assignMutation.isPending || selectedIds.size === 0}
@@ -232,8 +194,8 @@ export function AssignMembersDialog({
               <Loader2 className="animate-spin mr-2" />
             ) : (
               <Check className="mr-2 w-5 h-5" />
-            )}
-            บันทึกการหาร ({selectedIds.size} คน)
+            )}{" "}
+            บันทึก ({selectedIds.size} คน)
           </Button>
         </div>
       </DialogContent>

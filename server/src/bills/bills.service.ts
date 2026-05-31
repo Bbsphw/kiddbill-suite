@@ -182,14 +182,19 @@ export class BillsService {
 
     // เตรียมโครงสร้างข้อมูล
     const memberTotals: any = {};
+
     bill.members.forEach((m) => {
-      // ใช้ ID ของ Member เป็น Key (รองรับทั้ง User จริง และ Guest)
-      // แต่เวลา Return จะแปะ userId ไปด้วยเผื่อ Frontend ใช้
+      // ใช้ ID ของ Member เป็น Key
       const key = m.userId || m.id;
+
       memberTotals[key] = {
         memberId: m.id,
         userId: m.userId,
         name: m.name,
+        // ✅ เพิ่ม 2 บรรทัดนี้ เพื่อส่งสถานะการจ่ายกลับไป
+        isPaid: m.isPaid,
+        verifiedAt: m.verifiedAt,
+
         baseAmount: 0,
         scAmount: 0,
         vatAmount: 0,
@@ -207,13 +212,8 @@ export class BillsService {
       );
 
       if (totalWeight > 0) {
-        // มีคนหาร -> แบ่งตามน้ำหนัก
+        // มีคนหาร
         item.splits.forEach((split) => {
-          // หา Key ของคนนี้ (User ID หรือ Member ID)
-          const memberKey = split.memberId; // ใน Split มี memberId ที่เชื่อมกับ BillMember อยู่แล้ว
-
-          // ต้อง Map กลับไปหา Key ที่เราตั้งไว้ข้างบน (User ID ถ้ามี, หรือ Member ID)
-          // วิธีง่ายสุดคือหาจาก bill.members
           const memberObj = bill.members.find((m) => m.id === split.memberId);
           const targetKey = memberObj ? memberObj.userId || memberObj.id : null;
 
@@ -229,9 +229,7 @@ export class BillsService {
         });
       } else {
         // ไม่มีคนหาร -> เข้า Owner
-        const ownerMember = bill.members.find((m) => m.userId === bill.ownerId);
-        const ownerKey = bill.ownerId; // Owner ต้องมี UserID เสมอ
-
+        const ownerKey = bill.ownerId;
         if (memberTotals[ownerKey]) {
           memberTotals[ownerKey].baseAmount += itemTotalPrice;
           memberTotals[ownerKey].items.push({
@@ -246,19 +244,16 @@ export class BillsService {
     const summary = Object.values(memberTotals).map((data: any) => {
       let currentTotal = data.baseAmount;
 
-      // Service Charge (ถ้ายังไม่รวม)
       if (!bill.isServiceChargeIncluded && Number(bill.serviceChargeRate) > 0) {
         data.scAmount = currentTotal * (Number(bill.serviceChargeRate) / 100);
         currentTotal += data.scAmount;
       }
 
-      // VAT (ถ้ายังไม่รวม)
       if (!bill.isVatIncluded && Number(bill.vatRate) > 0) {
         data.vatAmount = currentTotal * (Number(bill.vatRate) / 100);
         currentTotal += data.vatAmount;
       }
 
-      // ปัดเศษทศนิยม 2 ตำแหน่ง (ปัดขึ้นเสมอเพื่อกันขาดทุน)
       data.netAmount = Math.ceil(currentTotal * 100) / 100;
 
       return data;
@@ -267,12 +262,18 @@ export class BillsService {
     return {
       billId: bill.id,
       title: bill.title,
+      status: bill.status, // ✅ เพิ่ม status กลับไปด้วย Frontend จะได้เช็ค COMPLETED ได้
       config: {
         vat: Number(bill.vatRate),
         sc: Number(bill.serviceChargeRate),
       },
       members: summary,
-      grandTotal: summary.reduce((sum, m) => sum + m.netAmount, 0),
+      grandTotal: summary.reduce((sum: number, m: any) => sum + m.netAmount, 0),
+
+      promptPayNumber: bill.promptPayNumber,
+      promptPayName: bill.promptPayName,
+      bankName: bill.bankName,
+      bankAccount: bill.bankAccount,
     };
   }
 }
