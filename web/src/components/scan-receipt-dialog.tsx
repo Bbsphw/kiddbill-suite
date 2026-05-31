@@ -79,7 +79,16 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
     value: string | number,
   ) => {
     const newItems = [...editableItems];
-    newItems[index] = { ...newItems[index], [field]: value };
+    const currentItem = newItems.find((_, i) => i === index);
+    if (!currentItem) return;
+
+    if (field === "name") {
+      currentItem.name = value as string;
+    } else if (field === "price") {
+      currentItem.price = value as number;
+    } else if (field === "quantity") {
+      currentItem.quantity = value as number;
+    }
     setEditableItems(newItems);
   };
 
