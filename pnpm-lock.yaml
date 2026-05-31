@@ -9,20 +9,20 @@ importers:
   .:
     dependencies:
       '@prisma/adapter-pg':
-        specifier: ^7.3.0
+        specifier: 7.3.0
         version: 7.3.0
       multer:
-        specifier: ^2.0.2
+        specifier: 2.0.2
         version: 2.0.2
       pg:
-        specifier: ^8.18.0
+        specifier: 8.18.0
         version: 8.18.0
     devDependencies:
       '@types/multer':
-        specifier: ^2.0.0
+        specifier: 2.0.0
         version: 2.0.0
       '@types/pg':
-        specifier: ^8.16.0
+        specifier: 8.16.0
         version: 8.16.0
 
 packages:
