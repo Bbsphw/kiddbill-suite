@@ -1,26 +1,71 @@
-# --- Dependencies ---
+# --- Dependencies & Package Managers ---
 node_modules/
+.pnpm-store/
+**/.pnpm-store/
+jspm_packages/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.pnpm-debug.log*
+.pnp
+.pnp.*
 
-# --- Environment Variables (ความลับ ห้ามขึ้นเด็ดขาด!) ---
+# --- Environment Variables & Secrets (CRITICAL) ---
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
+**/.env
+**/.env.local
+**/.env.*
+*.pem
+*.key
+*.cert
 
-# --- Build Outputs (Server/NestJS) ---
+# --- Build Outputs ---
+dist/
+build/
+out/
+.next/
 server/dist/
 server/coverage/
-
-# --- Build Outputs (Web/Next.js) ---
 web/.next/
 web/out/
 web/build/
+**/dist/
+**/build/
+**/out/
+**/.next/
+**/*.tsbuildinfo
 
-# --- System Files (Mac OS) ---
+# --- Tests & Coverage ---
+coverage/
+.nyc_output/
+**/coverage/
+
+# --- IDEs & Editors ---
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.classpath
+.settings/
+
+# --- OS Files ---
 .DS_Store
-*.pem
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini

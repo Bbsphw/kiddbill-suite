@@ -180,8 +180,8 @@ export class BillsService {
 
     if (!bill) throw new NotFoundException('Bill not found');
 
-    // เตรียมโครงสร้างข้อมูล
-    const memberTotals: any = {};
+    // เตรียมโครงสร้างข้อมูล (ใช้ Object.create(null) เพื่อป้องกัน Prototype Pollution)
+    const memberTotals: any = Object.create(null);
 
     bill.members.forEach((m) => {
       // ใช้ ID ของ Member เป็น Key
