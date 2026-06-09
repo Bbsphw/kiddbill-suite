@@ -5,7 +5,7 @@ dotenv.config(); // โหลด .env ก่อนเพื่อน
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ZodValidationPipe } from 'nestjs-zod';
 
@@ -36,4 +36,4 @@ async function bootstrap() {
   logger.log(`🚀 Application is running on: ${await app.getUrl()}`);
   logger.log(`⭐️ Environment: ${process.env.NODE_ENV || 'development'}`);
 }
-bootstrap();
+void bootstrap();

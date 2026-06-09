@@ -13,6 +13,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OcrService } from './ocr.service';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
+import { OcrResultDto } from './dto/ocr-response.dto';
 
 @Controller('ocr')
 @UseGuards(ClerkAuthGuard) // 🛡️ บังคับ Login
@@ -31,7 +32,7 @@ export class OcrController {
       }),
     )
     file: Express.Multer.File,
-  ) {
+  ): Promise<OcrResultDto> {
     return this.ocrService.parseReceipt(file);
   }
 }

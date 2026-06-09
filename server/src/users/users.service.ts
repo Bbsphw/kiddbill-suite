@@ -77,7 +77,7 @@ export class UsersService {
     return this.prisma.user.findMany({
       where: {
         // 1. ถ้าต้องการ "ซ่อนตัวเอง" ให้เปิดบรรทัดนี้ (ปกติแอพแชทจะซ่อน)
-        // id: { not: currentUserId },
+        id: { not: currentUserId },
 
         // 2. เงื่อนไขการค้นหา (Case Insensitive)
         OR: [

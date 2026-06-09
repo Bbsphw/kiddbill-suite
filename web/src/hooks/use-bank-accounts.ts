@@ -11,7 +11,7 @@ export const useBankAccounts = () => {
   return useQuery<BankAccount[]>({
     queryKey: ["my-bank-accounts"],
     queryFn: async () => {
-      const res = await api.get("/bank-accounts");
+      const res = await api.get<BankAccount[]>("/bank-accounts");
       return res.data;
     },
   });
@@ -31,8 +31,8 @@ export const useCreateBankAccount = () => {
       toast.success("บันทึกบัญชีใหม่แล้ว ✨");
       queryClient.invalidateQueries({ queryKey: ["my-bank-accounts"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "สร้างบัญชีไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "สร้างบัญชีไม่สำเร็จ");
     },
   });
 };
@@ -50,6 +50,8 @@ export const useDeleteBankAccount = () => {
       toast.success("ลบบัญชีแล้ว 🗑️");
       queryClient.invalidateQueries({ queryKey: ["my-bank-accounts"] });
     },
-    onError: () => toast.error("ลบไม่สำเร็จ"),
+    onError: (error: Error) => {
+      toast.error(error.message || "ลบไม่สำเร็จ");
+    },
   });
 };

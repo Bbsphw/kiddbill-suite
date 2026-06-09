@@ -1,23 +1,29 @@
-// server/src/ocr/ocr.controller.ts
+// server/src/ocr/ocr.module.ts
 
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OcrService } from './ocr.service';
 import { OcrController } from './ocr.controller';
-import { MulterModule } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { OCR_ENGINE } from './ocr.constants';
+import { MockOcrEngine } from './engines/mock-ocr.engine';
 
 @Module({
-  imports: [
-    // ตั้งค่า Multer ให้เก็บไฟล์ใน Memory (Ram) ชั่วคราว
-    // เพื่อส่งต่อให้ AI แล้วทิ้งไป (ไม่ต้อง Save ลง Disk Server)
-    MulterModule.register({
-      storage: memoryStorage(),
-      limits: {
-        fileSize: 5 * 1024 * 1024, // จำกัดขนาด 5MB
-      },
-    }),
-  ],
   controllers: [OcrController],
-  providers: [OcrService],
+  providers: [
+    OcrService,
+    {
+      provide: OCR_ENGINE,
+      useFactory: (configService: ConfigService) => {
+        const provider = configService.get<string>('OCR_PROVIDER') || 'mock';
+        if (provider === 'mock') {
+          return new MockOcrEngine();
+        }
+        // Fallback หรือขยายไปใช้ Provider อื่น เช่น openai, vision ในอนาคต
+        return new MockOcrEngine();
+      },
+      inject: [ConfigService],
+    },
+  ],
+  exports: [OcrService],
 })
 export class OcrModule {}

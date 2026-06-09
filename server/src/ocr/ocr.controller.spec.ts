@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OcrController } from './ocr.controller';
 import { OcrService } from './ocr.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OCR_ENGINE } from './ocr.constants';
 
 describe('OcrController', () => {
   let controller: OcrController;
@@ -16,6 +17,12 @@ describe('OcrController', () => {
         {
           provide: PrismaService,
           useValue: {},
+        },
+        {
+          provide: OCR_ENGINE,
+          useValue: {
+            parseReceipt: jest.fn(),
+          },
         },
       ],
     }).compile();

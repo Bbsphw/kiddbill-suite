@@ -21,13 +21,11 @@ import { Users, UserPlus, Loader2, Sparkles } from "lucide-react";
 interface BillMembersDialogProps {
   billId: string;
   members: BillMember[];
-  ownerId: string;
 }
 
 export function BillMembersDialog({
   billId,
   members,
-  ownerId,
 }: BillMembersDialogProps) {
   const [open, setOpen] = useState(false);
   const [guestName, setGuestName] = useState("");

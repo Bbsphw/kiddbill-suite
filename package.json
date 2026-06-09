@@ -1,4 +1,21 @@
 {
+	"packageManager": "pnpm@10.34.1",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@clerk/shared",
+			"sharp",
+			"unrs-resolver",
+			"@prisma/engines",
+			"prisma",
+			"@nestjs/core"
+		]
+	},
+	"scripts": {
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"lint": "turbo run lint",
+		"format": "turbo run format"
+	},
 	"dependencies": {
 		"@prisma/adapter-pg": "7.3.0",
 		"multer": "2.0.2",
@@ -6,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@types/multer": "2.0.0",
-		"@types/pg": "8.16.0"
+		"@types/pg": "8.16.0",
+		"turbo": "^2.9.17"
 	}
 }

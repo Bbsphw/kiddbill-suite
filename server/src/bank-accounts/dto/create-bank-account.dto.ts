@@ -1,6 +1,6 @@
 // server/src/bank-accounts/dto/create-bank-account.dto.ts
 
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto, ZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const CreateBankAccountSchema = z.object({
@@ -13,3 +13,6 @@ export const CreateBankAccountSchema = z.object({
 export class CreateBankAccountDto extends createZodDto(
   CreateBankAccountSchema,
 ) {}
+
+// Acknowledge ZodDto to the TypeScript compiler to ensure portable declaration generation
+export type CreateBankAccountDtoType = ZodDto<typeof CreateBankAccountSchema>;

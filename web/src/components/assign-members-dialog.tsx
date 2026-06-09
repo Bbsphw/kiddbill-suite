@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { BillMember, BillItem } from "@/types/bill";
 import { useAssignSplit } from "@/hooks/use-bills";
 import {
@@ -32,18 +32,15 @@ export function AssignMembersDialog({
   members,
   billId,
 }: AssignMembersDialogProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const assignMutation = useAssignSplit(billId);
-
-  useEffect(() => {
-    if (open) {
-      if (Array.isArray(item.splits)) {
-        setSelectedIds(new Set(item.splits.map((s) => s.memberId)));
-      } else {
-        setSelectedIds(new Set(members.map((m) => m.id)));
-      }
+  // Initialize state directly from the props. The parent component will conditionally mount
+  // this dialog only when it is open, ensuring correct initialization without useEffect.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    if (Array.isArray(item.splits) && item.splits.length > 0) {
+      return new Set(item.splits.map((s) => s.memberId));
     }
-  }, [open, item, members]);
+    return new Set(members.map((m) => m.id));
+  });
+  const assignMutation = useAssignSplit(billId);
 
   const toggleMember = (memberId: string) => {
     const newSet = new Set(selectedIds);
