@@ -4,8 +4,7 @@
 
 import { useState, useRef } from "react";
 import { useScanReceipt } from "@/hooks/use-ocr";
-import { useAddBillItem } from "@/hooks/use-bills";
-import { OcrItem } from "@/types/ocr";
+import { useAddBillItemsBatch } from "@/hooks/use-bills";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,14 +34,19 @@ interface ScanReceiptDialogProps {
   billId: string;
 }
 
+interface EditableOcrItem {
+  name: string;
+  price: number | string;
+  quantity: number | string;
+}
+
 export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"UPLOAD" | "PREVIEW">("UPLOAD");
-  const [editableItems, setEditableItems] = useState<OcrItem[]>([]);
+  const [editableItems, setEditableItems] = useState<EditableOcrItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutate: scan, isPending: isScanning } = useScanReceipt();
-  const { mutateAsync: addItem } = useAddBillItem(billId);
-  const [isAddingItems, setIsAddingItems] = useState(false);
+  const addItemsBatch = useAddBillItemsBatch(billId);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,7 +63,7 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
   };
   const updateItem = (
     index: number,
-    field: keyof OcrItem,
+    field: keyof EditableOcrItem,
     value: string | number,
   ) => {
     const newItems = [...editableItems];
@@ -68,10 +72,8 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
 
     if (field === "name") {
       currentItem.name = value as string;
-    } else if (field === "price") {
-      currentItem.price = value as number;
-    } else if (field === "quantity") {
-      currentItem.quantity = value as number;
+    } else {
+      currentItem[field] = value;
     }
     setEditableItems(newItems);
   };
@@ -79,30 +81,24 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
     setEditableItems(editableItems.filter((_, i) => i !== index));
   };
   const totalAmount = editableItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
     0,
   );
 
   const handleConfirmAdd = async () => {
     if (editableItems.length === 0) return;
-    setIsAddingItems(true);
     try {
-      await Promise.all(
-        editableItems.map((item) =>
-          addItem({
-            name: item.name || "รายการไม่ระบุชื่อ",
-            price: Number(item.price) || 0,
-            quantity: Number(item.quantity) || 1,
-          }),
-        ),
+      await addItemsBatch.mutateAsync(
+        editableItems.map((item) => ({
+          name: item.name || "รายการไม่ระบุชื่อ",
+          price: typeof item.price === "string" ? (parseFloat(item.price) || 0) : item.price,
+          quantity: typeof item.quantity === "string" ? (parseFloat(item.quantity) || 1) : item.quantity,
+        })),
       );
-      toast.success(`เพิ่ม ${editableItems.length} รายการแล้ว!`);
       setOpen(false);
       setTimeout(resetState, 300);
     } catch (error) {
-      toast.error("เกิดข้อผิดพลาด");
-    } finally {
-      setIsAddingItems(false);
+      console.error(error);
     }
   };
   const resetState = () => {
@@ -222,7 +218,7 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
                               updateItem(
                                 index,
                                 "quantity",
-                                Math.max(1, item.quantity - 1),
+                                Math.max(1, (Number(item.quantity) || 1) - 1),
                               )
                             }
                           >
@@ -235,15 +231,15 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
                               updateItem(
                                 index,
                                 "quantity",
-                                parseFloat(e.target.value),
+                                e.target.value,
                               )
                             }
-                            className="w-10 h-6 text-center border-none bg-transparent text-xs p-0 focus-visible:ring-0"
+                            className="w-10 h-6 text-center border-none bg-transparent text-xs p-0 focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             className="p-1 hover:bg-white rounded-md text-slate-500 hover:text-indigo-600"
                             onClick={() =>
-                              updateItem(index, "quantity", item.quantity + 1)
+                              updateItem(index, "quantity", (Number(item.quantity) || 0) + 1)
                             }
                           >
                             <Plus size={12} />
@@ -261,14 +257,14 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
                               updateItem(
                                 index,
                                 "price",
-                                parseFloat(e.target.value),
+                                e.target.value,
                               )
                             }
                             className="h-8 text-sm pl-5 border-slate-200 focus:border-indigo-500"
                           />
                         </div>
                         <div className="font-bold text-slate-700 text-sm min-w-[60px] text-right">
-                          ฿{(item.price * item.quantity).toLocaleString()}
+                          ฿{((Number(item.price) || 0) * (Number(item.quantity) || 0)).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -294,10 +290,10 @@ export function ScanReceiptDialog({ billId }: ScanReceiptDialogProps) {
               </Button>
               <Button
                 onClick={handleConfirmAdd}
-                disabled={isAddingItems || editableItems.length === 0}
+                disabled={addItemsBatch.isPending || editableItems.length === 0}
                 className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
               >
-                {isAddingItems ? (
+                {addItemsBatch.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <CheckCircle2 className="mr-2 h-4 w-4" />

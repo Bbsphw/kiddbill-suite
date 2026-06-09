@@ -34,6 +34,65 @@ services:
     networks:
       - kiddbill-network
 
+  # --- Backend: NestJS Dev ---
+  kiddbill-backend:
+    profiles: ["apps"]
+    image: node:22-alpine
+    container_name: kiddbill-backend
+    working_dir: /app
+    volumes:
+      - ../server:/app
+      - /app/node_modules # ป้องกัน node_modules ชนกันระหว่าง OS
+    ports:
+      - "3001:3001" # NestJS รันที่พอร์ต 3001
+    command: sh -c "corepack enable && pnpm install && npx prisma generate && pnpm run start:dev"
+    depends_on:
+      - kiddbill-db
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@kiddbill-db:5432/${DB_NAME}?schema=public
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      JWKS_URL: ${JWKS_URL}
+      CLERK_JWT_KEY: ${CLERK_JWT_KEY}
+    networks:
+      - kiddbill-network
+
+  # --- Prisma Studio ---
+  kiddbill-prisma-studio:
+    profiles: ["apps"]
+    image: node:22-alpine
+    container_name: kiddbill-prisma-studio
+    working_dir: /app
+    volumes:
+      - ../server:/app
+      - /app/node_modules
+    ports:
+      - "5555:5555" # Prisma Studio เข้าผ่านพอร์ต 5555
+    command: sh -c "corepack enable && pnpm install && npx prisma studio --port 5555 --browser none"
+    depends_on:
+      - kiddbill-db
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@kiddbill-db:5432/${DB_NAME}?schema=public
+    networks:
+      - kiddbill-network
+
+  # --- Frontend: Next.js Dev ---
+  kiddbill-frontend:
+    profiles: ["apps"]
+    image: node:22-alpine
+    container_name: kiddbill-frontend
+    working_dir: /app
+    volumes:
+      - ../web:/app
+      - /app/node_modules
+      - /app/.next # ป้องกันไฟล์แคช Next.js ตีกันระหว่าง Host และ Container
+    ports:
+      - "3000:3000" # Next.js รันที่พอร์ต 3000
+    command: sh -c "corepack enable && pnpm install && pnpm run dev"
+    depends_on:
+      - kiddbill-backend
+    networks:
+      - kiddbill-network
+
 networks:
   kiddbill-network:
     driver: bridge # แนะนำให้ระบุ driver ชัดเจน (แม้ default จะเป็น bridge)

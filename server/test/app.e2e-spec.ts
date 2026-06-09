@@ -20,6 +20,10 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect('Hello World!');
+      .expect((res) => {
+        const body = res.body as { status: string; message: string };
+        expect(body.status).toBe('ok');
+        expect(body.message).toContain('KiddBill API is running');
+      });
   });
 });

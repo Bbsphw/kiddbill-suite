@@ -27,8 +27,10 @@ export class BillMembersService {
       throw new NotFoundException('Invalid join code');
     }
 
-    if (bill.status === 'CANCELLED') {
-      throw new BadRequestException('This bill has been cancelled');
+    if (bill.status === 'CANCELLED' || bill.status === 'COMPLETED') {
+      throw new BadRequestException(
+        `Cannot join a ${bill.status.toLowerCase()} bill`,
+      );
     }
 
     // 2. เช็คว่าเข้าซ้ำไหม?
@@ -51,7 +53,7 @@ export class BillMembersService {
       try {
         const clerkUser = await clerkClient.users.getUser(userId);
         displayName = clerkUser.firstName || 'New Member';
-      } catch (e) {
+      } catch {
         /* ignore error */
       }
     }
@@ -78,11 +80,28 @@ export class BillMembersService {
     // 1. เช็คสิทธิ์ความเป็นเจ้าของ
     const bill = await this.prisma.bill.findUnique({
       where: { id: dto.billId },
+      include: { members: true },
     });
     if (!bill) throw new NotFoundException('Bill not found');
 
+    if (bill.status === 'COMPLETED' || bill.status === 'CANCELLED') {
+      throw new BadRequestException(
+        `Cannot add guest members to a ${bill.status.toLowerCase()} bill`,
+      );
+    }
+
     if (bill.ownerId !== userId) {
       throw new ForbiddenException('Only bill owner can add guest members');
+    }
+
+    // เช็คกรณีชื่อซ้ำในบิล (Case-insensitive)
+    const nameExists = bill.members.some(
+      (m) => m.name.toLowerCase() === dto.name.toLowerCase(),
+    );
+    if (nameExists) {
+      throw new BadRequestException(
+        `A member with the name "${dto.name}" already exists in this bill`,
+      );
     }
 
     // 2. สร้าง Guest (userId = null)
@@ -112,6 +131,12 @@ export class BillMembersService {
     });
     if (!member) throw new NotFoundException('Member not found');
 
+    if (member.bill.status === 'CANCELLED') {
+      throw new BadRequestException(
+        'Cannot modify payment status on a cancelled bill',
+      );
+    }
+
     // เช็คสิทธิ์: ต้องเป็น "เจ้าตัว" หรือ "เจ้าของบิล" ถึงจะกดได้
     const isSelf = member.userId === userId;
     const isOwner = member.bill.ownerId === userId;
@@ -136,6 +161,12 @@ export class BillMembersService {
       include: { bill: true },
     });
     if (!member) throw new NotFoundException('Member not found');
+
+    if (member.bill.status === 'CANCELLED') {
+      throw new BadRequestException(
+        'Cannot verify payment on a cancelled bill',
+      );
+    }
 
     // ต้องเป็น "เจ้าของบิล" เท่านั้น
     if (member.bill.ownerId !== userId) {

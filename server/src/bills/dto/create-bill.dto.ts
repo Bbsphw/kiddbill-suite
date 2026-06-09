@@ -1,6 +1,6 @@
 // server/src/bills/dto/create-bill.dto.ts
 
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto, ZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const CreateBillSchema = z.object({
@@ -21,3 +21,6 @@ export const CreateBillSchema = z.object({
 });
 
 export class CreateBillDto extends createZodDto(CreateBillSchema) {}
+
+// Acknowledge ZodDto to the TypeScript compiler to ensure portable declaration generation
+export type CreateBillDtoType = ZodDto<typeof CreateBillSchema>;

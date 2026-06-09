@@ -1,28 +1,39 @@
 // web/src/hooks/use-join-bill.ts
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { BillMember } from "@/types/bill";
+
+interface JoinResponse {
+  message: string;
+  member: BillMember;
+  billId: string;
+}
 
 export const useJoinBill = () => {
   const api = useApiClient();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (joinCode: string) => {
       // ส่งรหัสไปที่ Backend
-      const res = await api.post("/bill-members/join", { joinCode });
+      const res = await api.post<JoinResponse>("/bill-members/join", { joinCode });
       return res.data;
     },
     onSuccess: (data) => {
       toast.success("เข้าร่วมบิลสำเร็จ! 🚀");
-      // data.billId คือสิ่งที่ backend ส่งกลับมา (ต้องแน่ใจว่า service return billId)
-      router.push(`/bill/${data.billId}`);
+      queryClient.invalidateQueries({ queryKey: ["my-bills"] });
+      
+      const billId = data.billId || data.member?.billId;
+      if (billId) {
+        router.push(`/bill/${billId}`);
+      }
     },
-    onError: (error: any) => {
-      const msg =
-        error.response?.data?.message || "ไม่พบรหัสห้อง หรือบิลถูกยกเลิกไปแล้ว";
+    onError: (error: Error) => {
+      const msg = error.message || "ไม่พบรหัสห้อง หรือบิลถูกยกเลิกไปแล้ว";
       toast.error(msg);
     },
   });

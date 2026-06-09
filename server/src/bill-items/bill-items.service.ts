@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBillItemDto } from './dto/create-bill-item.dto';
@@ -22,6 +23,13 @@ export class BillItemsService {
     });
 
     if (!bill) throw new NotFoundException('Bill not found');
+
+    // Lock condition
+    if (bill.status === 'COMPLETED' || bill.status === 'CANCELLED') {
+      throw new BadRequestException(
+        `Cannot add items to a ${bill.status.toLowerCase()} bill`,
+      );
+    }
 
     // 2. เช็คสิทธิ์: ต้องเป็น Owner หรือ Member ในบิลนั้น ถึงจะสั่งอาหารได้
     const isOwner = bill.ownerId === userId;
@@ -63,6 +71,13 @@ export class BillItemsService {
 
     if (!item) throw new NotFoundException('Item not found');
 
+    // Lock condition
+    if (item.bill.status === 'COMPLETED' || item.bill.status === 'CANCELLED') {
+      throw new BadRequestException(
+        `Cannot update items on a ${item.bill.status.toLowerCase()} bill`,
+      );
+    }
+
     // 🔒 Security Check: เฉพาะเจ้าของบิล
     if (item.bill.ownerId !== userId) {
       throw new ForbiddenException('Only bill owner can update items');
@@ -90,6 +105,13 @@ export class BillItemsService {
     });
 
     if (!item) throw new NotFoundException('Item not found');
+
+    // Lock condition
+    if (item.bill.status === 'COMPLETED' || item.bill.status === 'CANCELLED') {
+      throw new BadRequestException(
+        `Cannot delete items from a ${item.bill.status.toLowerCase()} bill`,
+      );
+    }
 
     // 🔒 Security Check: เฉพาะเจ้าของบิล
     if (item.bill.ownerId !== userId) {

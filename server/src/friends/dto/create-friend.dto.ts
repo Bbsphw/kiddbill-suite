@@ -1,11 +1,13 @@
 // server/src/friends/dto/create-friend.dto.ts
 
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto, ZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const CreateFriendSchema = z.object({
-  // trim() ตัดช่องว่างหน้าหลังกัน User เผลอเคาะ spacebar
-  nickname: z.string().trim().min(1, 'Nickname is required'),
+  nickname: z.string().min(1, 'Nickname is required'), // ชื่อเพื่อนที่จะแสดง
 });
 
 export class CreateFriendDto extends createZodDto(CreateFriendSchema) {}
+
+// Acknowledge ZodDto to the TypeScript compiler to ensure portable declaration generation
+export type CreateFriendDtoType = ZodDto<typeof CreateFriendSchema>;

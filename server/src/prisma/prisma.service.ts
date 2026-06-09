@@ -6,9 +6,11 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 @Injectable()
 export class PrismaService
@@ -18,25 +20,32 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    // 1. สร้าง Connection Pool ด้วย pg
-    // ข้อดี: จัดการ Connection ได้ดีกว่า, รองรับ Serverless/Edge ได้ดีขึ้น
-    const connectionString = `${process.env.DATABASE_URL}`;
+    // 1. ดึง Connection String
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error('DATABASE_URL environment variable is missing');
+    }
 
-    const pool = new Pool({
+    // 2. ส่ง config ให้ PrismaPg (ให้ adapter จัดการสร้าง Pool ภายในเอง)
+    // แก้ไขปัญหา pnpm/instanceof pg.Pool mismatch
+    const adapter = new PrismaPg({
       connectionString,
-      // สามารถปรับจูน config pool ได้ที่นี่ เช่น:
-      // max: 10, (จำนวน connection สูงสุด)
-      // idleTimeoutMillis: 30000,
     });
-
-    // 2. เชื่อมต่อ Adapter
-    const adapter = new PrismaPg(pool);
 
     // 3. ส่ง Adapter ให้ PrismaClient
     super({
       adapter,
       log: ['query', 'info', 'warn', 'error'], // เปิด Log ดู Query ได้ถ้าต้องการ Debug
     });
+
+    try {
+      const parsed = new URL(connectionString);
+      this.logger.log(
+        `Database URL: host=${parsed.host}, database=${parsed.pathname}`,
+      );
+    } catch {
+      this.logger.warn('Failed to parse DATABASE_URL as URL object');
+    }
   }
 
   async onModuleInit() {
@@ -50,7 +59,11 @@ export class PrismaService
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
-    this.logger.log('🛑 Database disconnected');
+    try {
+      await this.$disconnect();
+      this.logger.log('🛑 Database disconnected and pool closed');
+    } catch (error) {
+      this.logger.error('❌ Error during database disconnect', error);
+    }
   }
 }

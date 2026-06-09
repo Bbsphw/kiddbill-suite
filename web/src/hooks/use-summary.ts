@@ -11,7 +11,7 @@ export const useBillSummary = (billId: string) => {
   return useQuery<BillSummary>({
     queryKey: ["bill-summary", billId],
     queryFn: async () => {
-      const res = await api.get(`/bills/${billId}/summary`);
+      const res = await api.get<BillSummary>(`/bills/${billId}/summary`);
       return res.data;
     },
     enabled: !!billId,
@@ -25,7 +25,7 @@ export const useTogglePaid = (billId: string) => {
 
   return useMutation({
     mutationFn: async (memberId: string) => {
-      const res = await api.patch(`/bill-members/${memberId}/toggle-paid`);
+      const res = await api.patch<unknown>(`/bill-members/${memberId}/toggle-paid`);
       return res.data;
     },
     onSuccess: () => {
@@ -33,8 +33,8 @@ export const useTogglePaid = (billId: string) => {
       queryClient.invalidateQueries({ queryKey: ["bill-summary", billId] });
       toast.success("อัปเดตสถานะการจ่ายแล้ว 💰");
     },
-    onError: () => {
-      toast.error("ทำรายการไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "ทำรายการไม่สำเร็จ");
     },
   });
 };
@@ -46,7 +46,7 @@ export const useCloseBill = (billId: string) => {
 
   return useMutation({
     mutationFn: async () => {
-      const res = await api.patch(`/bills/${billId}/close`);
+      const res = await api.patch<unknown>(`/bills/${billId}/close`);
       return res.data;
     },
     onSuccess: () => {
@@ -54,7 +54,7 @@ export const useCloseBill = (billId: string) => {
       queryClient.invalidateQueries({ queryKey: ["bill-summary", billId] });
       toast.success("ปิดบิลเรียบร้อย! 🎉");
     },
-    onError: () => toast.error("ปิดบิลไม่สำเร็จ"),
+    onError: (error: Error) => toast.error(error.message || "ปิดบิลไม่สำเร็จ"),
   });
 };
 
@@ -65,13 +65,13 @@ export const useVerifyPayment = (billId: string) => {
 
   return useMutation({
     mutationFn: async (memberId: string) => {
-      const res = await api.patch(`/bill-members/${memberId}/verify`);
+      const res = await api.patch<unknown>(`/bill-members/${memberId}/verify`);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bill-summary", billId] });
       toast.success("ยืนยันยอดเงินแล้ว ✅");
     },
-    onError: () => toast.error("ยืนยันไม่สำเร็จ"),
+    onError: (error: Error) => toast.error(error.message || "ยืนยันไม่สำเร็จ"),
   });
 };
