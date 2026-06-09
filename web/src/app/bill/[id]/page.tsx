@@ -144,7 +144,6 @@ export default function BillDetailPage() {
                 <BillMembersDialog
                   billId={bill.id}
                   members={bill.members!}
-                  ownerId={bill.ownerId}
                 />
                 <div
                   onClick={copyJoinCode}

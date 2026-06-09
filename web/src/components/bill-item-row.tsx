@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { BillItem, BillMember } from "@/types/bill";
 import { useUpdateBillItem, useDeleteBillItem } from "@/hooks/use-bills";
 import { AssignMembersDialog } from "@/components/assign-members-dialog";
@@ -51,13 +51,7 @@ export function BillItemRow({
       .filter((m): m is BillMember => !!m);
   }, [item.splits, members]);
 
-  useEffect(() => {
-    if (!isEditing) {
-      setName(item.name);
-      setPrice(item.price.toString());
-      setQuantity(item.quantity);
-    }
-  }, [item, isEditing]);
+
 
   const handleSave = () => {
     const numPrice = parseFloat(price);
@@ -252,6 +246,9 @@ export function BillItemRow({
                 size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setName(item.name);
+                  setPrice(item.price.toString());
+                  setQuantity(item.quantity);
                   setIsEditing(true);
                 }}
                 className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
@@ -279,13 +276,15 @@ export function BillItemRow({
           )}
         </div>
       </div>
-      <AssignMembersDialog
-        open={isAssignOpen}
-        onOpenChange={setIsAssignOpen}
-        item={item}
-        members={members}
-        billId={billId}
-      />
+      {isAssignOpen && (
+        <AssignMembersDialog
+          open={isAssignOpen}
+          onOpenChange={setIsAssignOpen}
+          item={item}
+          members={members}
+          billId={billId}
+        />
+      )}
     </>
   );
 }

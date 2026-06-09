@@ -1,16 +1,23 @@
 // server/src/users/dto/create-user.dto.ts
 
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto, ZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 // Schema สำหรับข้อมูลที่ส่งมาจาก Clerk (Frontend หรือ Webhook)
 export const CreateUserSchema = z.object({
-  id: z.string().min(1), // User ID จาก Clerk (user_xxxx)
-  email: z.string().email().optional().nullable(), // บางที Clerk ส่งมาเป็น null ได้ถ้าสมัครด้วยเบอร์
-  username: z.string().optional().nullable(),
+  id: z.string().min(1, 'User ID is required'), // Clerk User ID (เช่น user_...)
+  email: z.string().email('Invalid email address').optional().nullable(),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .optional()
+    .nullable(),
   firstName: z.string().optional().nullable(),
   lastName: z.string().optional().nullable(),
-  avatarUrl: z.string().url().optional().nullable(),
+  avatarUrl: z.string().url('Invalid avatar URL').optional().nullable(),
 });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
+
+// Acknowledge ZodDto to the TypeScript compiler to ensure portable declaration generation
+export type CreateUserDtoType = ZodDto<typeof CreateUserSchema>;

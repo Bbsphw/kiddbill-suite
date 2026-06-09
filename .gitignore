@@ -40,6 +40,7 @@ web/build/
 **/out/
 **/.next/
 **/*.tsbuildinfo
+.turbo/
 
 # --- Tests & Coverage ---
 coverage/

@@ -10,6 +10,26 @@ import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 
+export interface MemberTotalItem {
+  memberId: string;
+  userId: string | null;
+  name: string;
+  isPaid: boolean;
+  verifiedAt: Date | null;
+  baseAmount: number;
+  scBasis?: number;
+  vatBasis?: number;
+  vatOnScBasis?: number;
+  scAmount: number;
+  vatAmount: number;
+  netAmount: number;
+  items: Array<{
+    name: string;
+    amount: number;
+    weight?: number;
+  }>;
+}
+
 @Injectable()
 export class BillsService {
   constructor(private prisma: PrismaService) {}
@@ -150,21 +170,36 @@ export class BillsService {
     if (bill.ownerId !== userId)
       throw new ForbiddenException('Only owner can close bill');
 
+    // คำนวณสรุปยอดเงินล่าสุด เพื่อบันทึกลงฐานข้อมูล
+    const summaryData = await this.getSummary(id);
+
     // หาบัญชี Default ของ Owner
     const bank = await this.prisma.userBankAccount.findFirst({
       where: { userId, isDefault: true },
     });
 
-    return this.prisma.bill.update({
-      where: { id },
-      data: {
-        status: 'COMPLETED',
-        // Snapshot ข้อมูล
-        bankName: bank?.bankName || null,
-        bankAccount: bank?.accountNumber || null,
-        promptPayName: bank?.accountName || null,
-        promptPayNumber: bank?.accountNumber || null,
-      },
+    // อัปเดตข้อมูลและสมาชิกภายใน Transaction เพื่อความถูกต้องของข้อมูล
+    return this.prisma.$transaction(async (tx) => {
+      for (const m of summaryData.members) {
+        if (m.memberId && m.memberId !== 'owner-fallback') {
+          await tx.billMember.update({
+            where: { id: m.memberId },
+            data: { netAmountToPay: m.netAmount },
+          });
+        }
+      }
+
+      return tx.bill.update({
+        where: { id },
+        data: {
+          status: 'COMPLETED',
+          // Snapshot ข้อมูล
+          bankName: bank?.bankName || null,
+          bankAccount: bank?.accountNumber || null,
+          promptPayName: bank?.accountName || null,
+          promptPayNumber: bank?.accountNumber || null,
+        },
+      });
     });
   }
 
@@ -181,7 +216,7 @@ export class BillsService {
     if (!bill) throw new NotFoundException('Bill not found');
 
     // เตรียมโครงสร้างข้อมูล (ใช้ Object.create(null) เพื่อป้องกัน Prototype Pollution)
-    const memberTotals: any = Object.create(null);
+    const memberTotals = Object.create(null) as Record<string, MemberTotalItem>;
 
     bill.members.forEach((m) => {
       // ใช้ ID ของ Member เป็น Key
@@ -191,11 +226,14 @@ export class BillsService {
         memberId: m.id,
         userId: m.userId,
         name: m.name,
-        // ✅ เพิ่ม 2 บรรทัดนี้ เพื่อส่งสถานะการจ่ายกลับไป
         isPaid: m.isPaid,
         verifiedAt: m.verifiedAt,
 
         baseAmount: 0,
+        scBasis: 0,
+        vatBasis: 0,
+        vatOnScBasis: 0,
+
         scAmount: 0,
         vatAmount: 0,
         netAmount: 0,
@@ -203,13 +241,42 @@ export class BillsService {
       };
     });
 
+    // ค้นหา key ของ Owner ใน memberTotals เพื่อใช้รับ Item ที่ไม่มีคนหาร
+    let ownerKey = bill.ownerId;
+    const ownerMember = bill.members.find((m) => m.userId === bill.ownerId);
+    if (ownerMember) {
+      ownerKey = ownerMember.userId || ownerMember.id;
+    } else {
+      // Fallback: หากเจ้าของไม่มี record ใน members เลย
+      if (!memberTotals[ownerKey]) {
+        memberTotals[ownerKey] = {
+          memberId: 'owner-fallback',
+          userId: bill.ownerId,
+          name: 'Owner (Fallback)',
+          isPaid: true,
+          verifiedAt: new Date(),
+          baseAmount: 0,
+          scBasis: 0,
+          vatBasis: 0,
+          vatOnScBasis: 0,
+          scAmount: 0,
+          vatAmount: 0,
+          netAmount: 0,
+          items: [],
+        };
+      }
+    }
+
     // 1. Loop รายการอาหาร
     for (const item of bill.items) {
       const itemTotalPrice = Number(item.totalPrice);
       const totalWeight = item.splits.reduce(
-        (sum, s) => sum + Number(s.weight),
+        (sum: number, s) => sum + Number(s.weight),
         0,
       );
+
+      const applySc = item.applyServiceCharge;
+      const applyVat = item.applyVat;
 
       if (totalWeight > 0) {
         // มีคนหาร
@@ -220,6 +287,20 @@ export class BillsService {
           if (targetKey && memberTotals[targetKey]) {
             const share = (itemTotalPrice * Number(split.weight)) / totalWeight;
             memberTotals[targetKey].baseAmount += share;
+
+            if (applySc) {
+              memberTotals[targetKey].scBasis =
+                (memberTotals[targetKey].scBasis || 0) + share;
+            }
+            if (applyVat) {
+              memberTotals[targetKey].vatBasis =
+                (memberTotals[targetKey].vatBasis || 0) + share;
+            }
+            if (applySc && applyVat) {
+              memberTotals[targetKey].vatOnScBasis =
+                (memberTotals[targetKey].vatOnScBasis || 0) + share;
+            }
+
             memberTotals[targetKey].items.push({
               name: item.name,
               amount: share,
@@ -229,9 +310,22 @@ export class BillsService {
         });
       } else {
         // ไม่มีคนหาร -> เข้า Owner
-        const ownerKey = bill.ownerId;
         if (memberTotals[ownerKey]) {
           memberTotals[ownerKey].baseAmount += itemTotalPrice;
+
+          if (applySc) {
+            memberTotals[ownerKey].scBasis =
+              (memberTotals[ownerKey].scBasis || 0) + itemTotalPrice;
+          }
+          if (applyVat) {
+            memberTotals[ownerKey].vatBasis =
+              (memberTotals[ownerKey].vatBasis || 0) + itemTotalPrice;
+          }
+          if (applySc && applyVat) {
+            memberTotals[ownerKey].vatOnScBasis =
+              (memberTotals[ownerKey].vatOnScBasis || 0) + itemTotalPrice;
+          }
+
           memberTotals[ownerKey].items.push({
             name: `${item.name} (Unassigned)`,
             amount: itemTotalPrice,
@@ -241,17 +335,33 @@ export class BillsService {
     }
 
     // 2. Loop คำนวณ VAT/SC
-    const summary = Object.values(memberTotals).map((data: any) => {
+    const summary = Object.values(memberTotals).map((data: MemberTotalItem) => {
       let currentTotal = data.baseAmount;
 
+      const scBasis = data.scBasis || 0;
+      const vatBasis = data.vatBasis || 0;
+      const vatOnScBasis = data.vatOnScBasis || 0;
+
+      // Calculate Service Charge if not included
       if (!bill.isServiceChargeIncluded && Number(bill.serviceChargeRate) > 0) {
-        data.scAmount = currentTotal * (Number(bill.serviceChargeRate) / 100);
+        data.scAmount = scBasis * (Number(bill.serviceChargeRate) / 100);
         currentTotal += data.scAmount;
+      } else {
+        data.scAmount = 0;
       }
 
+      // Calculate VAT if not included
       if (!bill.isVatIncluded && Number(bill.vatRate) > 0) {
-        data.vatAmount = currentTotal * (Number(bill.vatRate) / 100);
+        const scOnVatItems =
+          !bill.isServiceChargeIncluded && Number(bill.serviceChargeRate) > 0
+            ? vatOnScBasis * (Number(bill.serviceChargeRate) / 100)
+            : 0;
+
+        data.vatAmount =
+          (vatBasis + scOnVatItems) * (Number(bill.vatRate) / 100);
         currentTotal += data.vatAmount;
+      } else {
+        data.vatAmount = 0;
       }
 
       data.netAmount = Math.ceil(currentTotal * 100) / 100;
@@ -268,7 +378,10 @@ export class BillsService {
         sc: Number(bill.serviceChargeRate),
       },
       members: summary,
-      grandTotal: summary.reduce((sum: number, m: any) => sum + m.netAmount, 0),
+      grandTotal: summary.reduce(
+        (sum: number, m: MemberTotalItem) => sum + m.netAmount,
+        0,
+      ),
 
       promptPayNumber: bill.promptPayNumber,
       promptPayName: bill.promptPayName,

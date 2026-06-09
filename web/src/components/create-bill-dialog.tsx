@@ -43,7 +43,7 @@ export function CreateBillDialog() {
         <DialogHeader>
           <DialogTitle>ตั้งชื่อบิลหน่อย 📝</DialogTitle>
           <DialogDescription>
-            เช่น "หมูกระทะซอย 8", "ทริปหัวหิน" หรือ "ข้าวเที่ยง"
+            เช่น &ldquo;หมูกระทะซอย 8&rdquo;, &ldquo;ทริปหัวหิน&rdquo; หรือ &ldquo;ข้าวเที่ยง&rdquo;
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

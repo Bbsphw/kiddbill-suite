@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Bill } from "@/types/bill";
+import { Bill, BillItem, BillMember } from "@/types/bill";
 
 // --- DTO Interfaces ---
 interface CreateBillDto {
@@ -15,7 +15,7 @@ interface CreateBillDto {
   promptPayNumber?: string;
 }
 
-interface AddItemDto {
+export interface AddItemDto {
   name: string;
   price: number;
   quantity: number;
@@ -48,7 +48,7 @@ export const useCreateBill = () => {
 
   return useMutation({
     mutationFn: async (data: CreateBillDto) => {
-      const res = await api.post("/bills", data);
+      const res = await api.post<Bill>("/bills", data);
       return res.data;
     },
     onSuccess: (data) => {
@@ -57,8 +57,8 @@ export const useCreateBill = () => {
       // Redirect ไปหน้าบิล
       router.push(`/bill/${data.id}`);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "สร้างบิลไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "สร้างบิลไม่สำเร็จ");
     },
   });
 };
@@ -68,31 +68,8 @@ export const useMyBills = () => {
   return useQuery<Bill[]>({
     queryKey: ["my-bills"],
     queryFn: async () => {
-      const res = await api.get("/bills");
+      const res = await api.get<Bill[]>("/bills");
       return res.data;
-    },
-  });
-};
-
-export const useJoinBill = () => {
-  const api = useApiClient();
-  const queryClient = useQueryClient();
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (joinCode: string) => {
-      const res = await api.post("/bill-members/join", { joinCode });
-      return res.data;
-    },
-    onSuccess: (data) => {
-      toast.success("เข้าร่วมสำเร็จ!");
-      queryClient.invalidateQueries({ queryKey: ["my-bills"] });
-      // Backend ควรส่ง billId กลับมา หรือ member object ที่มี billId
-      const billId = data.billId || data.bill?.id;
-      if (billId) router.push(`/bill/${billId}`);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "ไม่พบห้องนี้");
     },
   });
 };
@@ -103,7 +80,7 @@ export const useBill = (id: string) => {
   return useQuery<Bill>({
     queryKey: ["bill", id],
     queryFn: async () => {
-      const res = await api.get(`/bills/${id}`);
+      const res = await api.get<Bill>(`/bills/${id}`);
       return res.data;
     },
     enabled: !!id, // ทำงานเมื่อมี id เท่านั้น
@@ -117,7 +94,7 @@ export const useAddBillItem = (billId: string) => {
 
   return useMutation({
     mutationFn: async (data: AddItemDto) => {
-      const res = await api.post("/bill-items", { ...data, billId });
+      const res = await api.post<BillItem>("/bill-items", { ...data, billId });
       return res.data;
     },
     onSuccess: () => {
@@ -125,8 +102,30 @@ export const useAddBillItem = (billId: string) => {
       // Refresh ข้อมูลบิลทันที
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
     },
-    onError: (error: any) => {
-      toast.error("เพิ่มรายการไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "เพิ่มรายการไม่สำเร็จ");
+    },
+  });
+};
+
+// 2.2 เพิ่มรายการอาหารแบบกลุ่ม (Batch) เพื่อลดการ Re-render และ Network overhead
+export const useAddBillItemsBatch = (billId: string) => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (items: AddItemDto[]) => {
+      const promises = items.map((item) =>
+        api.post<BillItem>("/bill-items", { ...item, billId })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: (results) => {
+      toast.success(`เพิ่ม ${results.length} รายการสำเร็จแล้ว! 🍗`);
+      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "เพิ่มรายการไม่สำเร็จ");
     },
   });
 };
@@ -143,6 +142,9 @@ export const useDeleteBillItem = (billId: string) => {
     onSuccess: () => {
       toast.success("ลบรายการแล้ว 🗑️");
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "ลบรายการไม่สำเร็จ");
     },
   });
 };
@@ -161,8 +163,8 @@ export const useUpdateBillItem = (billId: string) => {
       // Invalidate เพื่อให้ Grand Total คำนวณใหม่
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
     },
-    onError: (error: any) => {
-      toast.error("แก้ไขรายการไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "แก้ไขรายการไม่สำเร็จ");
     },
   });
 };
@@ -182,8 +184,8 @@ export const useAddGuestMember = (billId: string) => {
       // Refresh ข้อมูลบิลเพื่ออัปเดตรายชื่อคน
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "เพิ่มสมาชิกไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "เพิ่มสมาชิกไม่สำเร็จ");
     },
   });
 };
@@ -202,8 +204,8 @@ export const useAssignSplit = (billId: string) => {
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
       toast.success("บันทึกเรียบร้อย ✅");
     },
-    onError: (error: any) => {
-      toast.error("บันทึกไม่สำเร็จ");
+    onError: (error: Error) => {
+      toast.error(error.message || "บันทึกไม่สำเร็จ");
     },
   });
 };

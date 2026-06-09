@@ -1,8 +1,11 @@
 // server/src/friends/dto/update-friend.dto.ts
 
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto, ZodDto } from 'nestjs-zod';
 import { CreateFriendSchema } from './create-friend.dto';
 
-const UpdateFriendSchema = CreateFriendSchema.partial();
+export const UpdateFriendSchema = CreateFriendSchema.partial();
 
 export class UpdateFriendDto extends createZodDto(UpdateFriendSchema) {}
+
+// Acknowledge ZodDto to the TypeScript compiler to ensure portable declaration generation
+export type UpdateFriendDtoType = ZodDto<typeof UpdateFriendSchema>;

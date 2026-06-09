@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "@/lib/api";
 import {
@@ -56,17 +56,30 @@ export function PaymentSettingsDialog({
   const createAccountMutation = useCreateBankAccount();
   const deleteAccountMutation = useDeleteBankAccount();
 
-  useEffect(() => {
+  // Track previous props/state for safe adjustment in render (prevents useEffect warnings/cascading renders)
+  const [prevOpen, setPrevOpen] = useState(false);
+  const [prevPromptPay, setPrevPromptPay] = useState<string | undefined>(undefined);
+  const [prevAccounts, setPrevAccounts] = useState<BankAccount[] | undefined>(undefined);
+
+  if (open !== prevOpen || currentPromptPay !== prevPromptPay || accounts !== prevAccounts) {
+    setPrevOpen(open);
+    setPrevPromptPay(currentPromptPay);
+    setPrevAccounts(accounts);
+    
     if (open) {
-      setMode("SELECT");
+      if (open !== prevOpen) {
+        setMode("SELECT");
+      }
       if (currentPromptPay && accounts) {
         const found = accounts.find(
           (a) => a.accountNumber === currentPromptPay,
         );
-        if (found) setSelectedBankId(found.id);
+        setSelectedBankId(found ? found.id : null);
       }
+    } else {
+      setSelectedBankId(null);
     }
-  }, [open, currentPromptPay, accounts]);
+  }
 
   const updateBillMutation = useMutation({
     mutationFn: async (account: BankAccount) => {
@@ -81,6 +94,9 @@ export function PaymentSettingsDialog({
       queryClient.invalidateQueries({ queryKey: ["bill-summary", billId] });
       toast.success("บันทึกแล้ว ✅");
       setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "บันทึกไม่สำเร็จ");
     },
   });
 

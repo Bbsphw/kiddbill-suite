@@ -13,19 +13,13 @@ export const useScanReceipt = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      // 👇 แก้ตรงนี้: ยัด Config เข้าไปเพื่อ "ล้าง" Content-Type
-      const res = await api.post<OcrResult>("/ocr/scan", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data", // บอก Axios ว่านี่คือไฟล์ (เดี๋ยว Axios จะจัดการ Boundary ให้เอง หรือบางทีต้องใช้ undefined)
-        },
-      });
+      // We do NOT set "Content-Type" so that the browser sets it automatically with the boundary
+      const res = await api.post<OcrResult>("/ocr/scan", formData);
       return res.data;
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("OCR Error:", error);
-      // แสดงข้อความ Error ที่ชัดเจนขึ้น
-      const msg =
-        error.response?.data?.message || error.message || "ลองใหม่อีกครั้ง";
+      const msg = error.message || "ลองใหม่อีกครั้ง";
       toast.error(`สแกนไม่สำเร็จ: ${Array.isArray(msg) ? msg[0] : msg}`);
     },
   });

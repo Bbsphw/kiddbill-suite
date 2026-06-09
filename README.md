@@ -104,29 +104,35 @@ To ensure the best developer experience, optimal performance, and hassle-free de
 
    *This starts `kiddbill-db` (port 5433) and `kiddbill-pgadmin` (port 5050).*
 
-2. **Run the Backend (Windows Terminal / PowerShell)**:
+2. **Run the Application via Turborepo (Windows Terminal / PowerShell)**:
 
-   Navigate to the `server` directory, install dependencies, and start NestJS in dev mode:
-
-   ```powershell
-   cd server
-   pnpm install
-   pnpm run start:dev
-   ```
-
-   *The NestJS server will start on [http://localhost:3001](http://localhost:3001).*
-
-3. **Run the Frontend (Windows Terminal / PowerShell)**:
-
-   Navigate to the `web` directory, install dependencies, and start Next.js in dev mode:
+   Our monorepo uses **Turborepo** for task orchestration and caching. You can start both the Next.js Frontend and NestJS Backend concurrently with a single command from the root directory:
 
    ```powershell
-   cd web
+   # Install all workspace dependencies from the root
    pnpm install
+
+   # Start both apps concurrently
    pnpm run dev
    ```
 
    *The Next.js app will start on [http://localhost:3000](http://localhost:3000).*
+   *The NestJS server will start on [http://localhost:3001](http://localhost:3001).*
+
+### 🎯 Turborepo Best Practices & Commands
+
+To get the most out of our Monorepo setup, here are the standard Turborepo commands you should use from the root directory:
+
+*   **Build Everything:** `pnpm run build` (Leverages build caching—subsequent builds are near-instant if code hasn't changed).
+*   **Lint Everything:** `pnpm run lint`
+*   **Format Code:** `pnpm run format`
+
+#### Running Services Separately (Isolated Mode)
+
+If you are focusing on a single app and want a cleaner terminal output without unnecessary resource usage, it is highly recommended to run them separately using Turborepo's filter flags:
+
+*   **Run only Frontend:** `pnpm turbo run dev --filter=web`
+*   **Run only Backend:** `pnpm turbo run dev --filter=server`
 
 4. **Run Prisma Studio (Optional - Windows Terminal)**:
 

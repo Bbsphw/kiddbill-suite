@@ -4,6 +4,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { useBill } from "@/hooks/use-bills";
 import {
   useBillSummary,
   useTogglePaid,
@@ -38,10 +39,13 @@ export default function SummaryPage() {
   const router = useRouter();
   const { user } = useUser();
   const billId = params?.id as string;
-  const { data: summary, isLoading } = useBillSummary(billId);
+  const { data: summary, isLoading: isSummaryLoading } = useBillSummary(billId);
+  const { data: bill, isLoading: isBillLoading } = useBill(billId);
   const togglePaidMutation = useTogglePaid(billId);
   const closeBillMutation = useCloseBill(billId);
   const verifyMutation = useVerifyPayment(billId);
+
+  const isLoading = isSummaryLoading || isBillLoading;
 
   if (isLoading)
     return (
@@ -53,7 +57,7 @@ export default function SummaryPage() {
 
   const mySummary = summary.members.find((m) => m.userId === user?.id);
   const isBillCompleted = summary.status === "COMPLETED";
-  const isOwner = true; // TODO: Check actual owner
+  const isOwner = user?.id === bill?.ownerId;
   const handleCopy = (text: string | null | undefined, label: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);

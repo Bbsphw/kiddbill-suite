@@ -1,25 +1,23 @@
 // server/src/splits/dto/assign-split.dto.ts
 
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto, ZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const AssignSplitSchema = z.object({
   itemId: z.string().uuid('Invalid Item ID'),
 
-  // Array ของคนที่จะหารจานนี้
   splits: z
     .array(
       z.object({
         memberId: z.string().uuid('Invalid Member ID'),
-
-        // น้ำหนัก: เช่น 1=1ส่วน, 2=2ส่วน (Optional, Default=1)
-        weight: z.number().min(0).default(1.0).optional(),
-
-        // ยอดตายตัว: เช่น "คนนี้ออก 100 บาท" (Optional)
-        fixedAmount: z.number().min(0).optional(),
+        weight: z.number().min(0).optional().default(1.0), // สัดส่วนการหาร (ค่าเริ่มต้นคือ 1 เท่า)
+        fixedAmount: z.number().min(0).optional(), // จ่ายราคาคงที่ (เช่น จ่าย 100 บาท)
       }),
     )
-    .min(1, 'Select at least 1 member to split'),
+    .min(1, 'At least one member must split the item'),
 });
 
 export class AssignSplitDto extends createZodDto(AssignSplitSchema) {}
+
+// Acknowledge ZodDto to the TypeScript compiler to ensure portable declaration generation
+export type AssignSplitDtoType = ZodDto<typeof AssignSplitSchema>;

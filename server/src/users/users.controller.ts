@@ -46,7 +46,7 @@ export class UsersController {
   // 🔍 Search Users (เอาไว้หาเพื่อน)
   @Get('search')
   @UseGuards(ClerkAuthGuard)
-  search(@Query('q') query: string) {
-    return this.usersService.searchUsers(query, query);
+  search(@Query('q') query: string, @CurrentUser() user: { id: string }) {
+    return this.usersService.searchUsers(query, user.id);
   }
 }
