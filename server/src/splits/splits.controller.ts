@@ -3,8 +3,8 @@
 import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
 import { SplitsService } from './splits.service';
 import { AssignSplitDto } from './dto/assign-split.dto';
-import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { ClerkAuthGuard } from '@/auth/clerk-auth.guard';
+import { CurrentUser } from '@/auth/current-user.decorator';
 
 @Controller('splits')
 @UseGuards(ClerkAuthGuard) // 🛡️ บังคับ Login

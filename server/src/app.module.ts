@@ -2,6 +2,8 @@
 
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { validate } from './env';
 
 // Core Modules
 import { PrismaModule } from './prisma/prisma.module';
@@ -17,14 +19,29 @@ import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { SplitsModule } from './splits/splits.module';
 import { FriendsModule } from './friends/friends.module';
 import { OcrModule } from './ocr/ocr.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
     // ⚙️ Config: โหลด .env ให้ใช้ได้ทั้งแอป
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: [
+        `.env.${process.env.NODE_ENV}.local`,
+        `.env.${process.env.NODE_ENV}`,
+        '.env.local',
+        '.env',
+      ],
+      validate,
     }),
+
+    // 🛡️ Rate Limiting (In-memory)
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 50,
+      },
+    ]),
 
     // 🗄️ Database
     PrismaModule,
@@ -38,6 +55,7 @@ import { OcrModule } from './ocr/ocr.module';
     SplitsModule,
     FriendsModule,
     OcrModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

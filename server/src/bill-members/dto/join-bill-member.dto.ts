@@ -6,8 +6,9 @@ import { z } from 'zod';
 export const JoinBillSchema = z.object({
   joinCode: z
     .string()
-    .length(6, 'Join code must be 6 characters')
-    .toUpperCase(), // บังคับตัวใหญ่เสมอ
+    .trim()
+    .toUpperCase()
+    .length(6, 'Join code must be 6 characters'),
 });
 
 export class JoinBillDto extends createZodDto(JoinBillSchema) {}

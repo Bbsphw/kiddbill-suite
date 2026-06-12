@@ -14,7 +14,11 @@
 		"build": "turbo run build",
 		"dev": "turbo run dev",
 		"lint": "turbo run lint",
-		"format": "turbo run format"
+		"format": "turbo run format",
+		"db:migrate:dev": "pnpm --filter server exec prisma migrate dev",
+		"db:migrate:deploy": "pnpm --filter server exec prisma migrate deploy",
+		"db:generate": "pnpm --filter server exec prisma generate",
+		"db:studio": "pnpm --filter server exec prisma studio"
 	},
 	"dependencies": {
 		"@prisma/adapter-pg": "7.3.0",

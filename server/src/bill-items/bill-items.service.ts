@@ -6,7 +6,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { CreateBillItemDto } from './dto/create-bill-item.dto';
 import { UpdateBillItemDto } from './dto/update-bill-item.dto';
 

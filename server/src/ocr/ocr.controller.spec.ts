@@ -3,7 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OcrController } from './ocr.controller';
 import { OcrService } from './ocr.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { OCR_ENGINE } from './ocr.constants';
 
 describe('OcrController', () => {

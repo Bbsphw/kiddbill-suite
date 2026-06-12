@@ -28,7 +28,7 @@ export interface BillMember {
 export interface Bill {
   id: string;
   title: string;
-  status: "DRAFT" | "SPLITTING" | "COMPLETED";
+  status: "DRAFT" | "SPLITTING" | "COMPLETED" | "CANCELLED";
   joinCode: string;
   ownerId: string;
   items: BillItem[];

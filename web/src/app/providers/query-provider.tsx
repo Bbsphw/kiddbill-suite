@@ -2,27 +2,29 @@
 
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
-import { Toaster } from "sonner";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { getQueryClient } from '@/lib/query-client';
+import { useAuth } from '@clerk/nextjs';
+import { useEffect, useRef } from 'react';
+import { Toaster } from 'sonner';
 
 export default function QueryProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // ข้อมูลถือว่าสดใหม่ 1 นาที (ไม่ fetch ซ้ำ)
-            retry: 1, // ถ้า error ให้ลองใหม่แค่ 1 ครั้งพอ
-            refetchOnWindowFocus: false, // ปิดการ fetch ใหม่ทุกครั้งที่สลับหน้าจอ (ลดภาระ Server)
-          },
-        },
-      }),
-  );
+  const queryClient = getQueryClient();
+  const { userId } = useAuth();
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    // ล้างแคชเฉพาะเมื่อผู้ใช้สลับบัญชีหรือออกจากระบบจริงๆ เท่านั้น
+    // ไม่ล้างตอน mount ครั้งแรก ป้องกัน cache หาย
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
+      queryClient.clear();
+    }
+    prevUserIdRef.current = userId;
+  }, [userId, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

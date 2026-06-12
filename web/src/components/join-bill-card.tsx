@@ -43,7 +43,7 @@ export function JoinBillCard() {
             className="uppercase tracking-widest font-mono text-center font-bold text-lg h-12 rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-200"
             maxLength={6}
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, ""))}
             onKeyDown={(e) => e.key === "Enter" && handleJoin()}
             disabled={joinMutation.isPending}
           />

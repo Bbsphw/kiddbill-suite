@@ -1,8 +1,6 @@
-// server/src/ocr/interfaces/ocr-engine.interface.ts
-
-import 'multer';
-import { OcrResultDto } from '../dto/ocr-response.dto';
+import { OcrResultDto } from '@/ocr/dto/ocr-response.dto';
 
 export interface OcrEngine {
-  parseReceipt(file: Express.Multer.File): Promise<OcrResultDto>;
+  parseReceipt(imageUrl: string): Promise<OcrResultDto>;
+  process(fileBuffer: Buffer): Promise<OcrResultDto>;
 }

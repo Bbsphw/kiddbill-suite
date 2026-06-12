@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
-    "paths": {
-      "@kiddbill/shared": ["../packages/shared"]
-    },
     "types": ["jest", "node"],
+    "allowJs": true,
     "module": "commonjs",
     "declaration": true,
     "removeComments": true,
@@ -13,13 +11,19 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "incremental": true,
+    "incremental": false,
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": true,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    "rootDir": "./",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*", "prisma.config.ts", "eslint.config.mjs"],
+  "exclude": ["node_modules", "dist"]
 }

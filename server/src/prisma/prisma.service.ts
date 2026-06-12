@@ -20,22 +20,18 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    // 1. ดึง Connection String
+    // 1. ดึง Connection String จาก Environment
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is missing');
     }
 
-    // 2. ส่ง config ให้ PrismaPg (ให้ adapter จัดการสร้าง Pool ภายในเอง)
-    // แก้ไขปัญหา pnpm/instanceof pg.Pool mismatch
-    const adapter = new PrismaPg({
-      connectionString,
-    });
+    const adapter = new PrismaPg(connectionString);
 
-    // 3. ส่ง Adapter ให้ PrismaClient
+    // 2. เรียกใช้งาน Prisma พร้อม Adapter
     super({
       adapter,
-      log: ['query', 'info', 'warn', 'error'], // เปิด Log ดู Query ได้ถ้าต้องการ Debug
+      log: ['query', 'info', 'warn', 'error'],
     });
 
     try {
@@ -51,17 +47,23 @@ export class PrismaService
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log('✅ Database connected via Prisma Adapter (pg)');
+      // 🛡️ บังคับยิง Query เทส Pool ว่าใช้งานได้จริง (Fail-Fast)
+      await this.$queryRawUnsafe('SELECT 1');
+      this.logger.log('✅ Database connected and verified via Prisma Adapter');
     } catch (error) {
-      this.logger.error('❌ Database connection failed', error);
-      throw error;
+      this.logger.error(
+        '❌ Database connection failed. Is PostgreSQL running?',
+        error,
+      );
+      // Fail-fast: Stop the application immediately if the database is unavailable
+      process.exit(1);
     }
   }
 
   async onModuleDestroy() {
     try {
       await this.$disconnect();
-      this.logger.log('🛑 Database disconnected and pool closed');
+      this.logger.log('🛑 Database disconnected');
     } catch (error) {
       this.logger.error('❌ Error during database disconnect', error);
     }

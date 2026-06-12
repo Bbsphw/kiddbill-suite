@@ -57,12 +57,13 @@ export function PromptPayQR({ id, amount, className }: PromptPayQRProps) {
     >
       <div className="relative flex justify-center">
         <QRCodeCanvas
+          className="qr-canvas"
           value={payload}
           size={200}
           level="L"
           marginSize={0}
           imageSettings={{
-            src: "https://upload.wikimedia.org/wikipedia/commons/c/c5/PromptPay-logo.png",
+            src: "/promptpay-logo.png",
             height: 24,
             width: 50,
             excavate: true,

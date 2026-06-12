@@ -3,8 +3,9 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApiClient } from "@/lib/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApiClient } from '@/lib/api';
+import { queryKeys } from '@/hooks/query-keys';
 import {
   useBankAccounts,
   useCreateBankAccount,
@@ -91,7 +92,7 @@ export function PaymentSettingsDialog({
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bill-summary", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.summaries.detail(billId) });
       toast.success("บันทึกแล้ว ✅");
       setOpen(false);
     },
