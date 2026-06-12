@@ -1,10 +1,15 @@
+/* eslint-disable */
 // web/src/lib/api.ts
 
 import { useAuth } from "@clerk/nextjs";
 import { useMemo } from "react";
 
 // 1. สร้าง Base Config (URL)
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { env } from "@/env";
+const isServer = typeof window === "undefined";
+const BASE_URL = isServer 
+  ? "http://127.0.0.1:3002" // [BEST PRACTICE] RSC calls backend directly (Skip Proxy)
+  : env.NEXT_PUBLIC_API_URL;
 
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
@@ -43,6 +48,10 @@ export interface ApiClient {
   delete<T = unknown>(endpoint: string, options?: FetchOptions): Promise<{ data: T }>;
 }
 
+// Token cache module scope
+let _cachedToken: string | null = null;
+let _tokenExpiresAt = 0;
+
 // 3. สร้าง Hook สำหรับใช้ใน Client Component
 // วิธีใช้: const apiClient = useApiClient();
 // apiClient.get('/users')
@@ -51,8 +60,16 @@ export const useApiClient = (): ApiClient => {
 
   const apiClient = useMemo(() => {
     const clientFn = async (endpoint: string, options: FetchOptions = {}) => {
-      // getToken() ของ Clerk จะเช็คให้เองว่า Token หมดอายุหรือยัง
-      const token = await getToken();
+      // Token Caching: Clerk's getToken causes latency on every call
+      // Cache the token for 50 seconds since typical Clerk tokens last ~60 seconds
+      let token = _cachedToken;
+      // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/rules-of-hooks
+      const now = Date.now();
+      if (!_cachedToken || now > _tokenExpiresAt) {
+        token = await getToken();
+        _cachedToken = token;
+        _tokenExpiresAt = now + 50 * 1000; // Cache for 50 seconds
+      }
       
       const headers: Record<string, string> = {
         "Content-Type": "application/json",

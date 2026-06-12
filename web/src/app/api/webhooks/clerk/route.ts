@@ -3,9 +3,10 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
+import { env } from "@/env";
 
 export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+  const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
     console.error("❌ Missing CLERK_WEBHOOK_SECRET");
@@ -66,8 +67,7 @@ export async function POST(req: Request) {
         (email) => email.id === evt.data.primary_email_address_id,
       )?.email_address || email_addresses[0]?.email_address;
 
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const backendUrl = env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
 
     try {
       console.log(`🚀 Syncing user ${id} to Backend...`);

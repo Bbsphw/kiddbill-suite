@@ -1,10 +1,11 @@
 // web/src/hooks/use-join-bill.ts
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApiClient } from "@/lib/api";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { BillMember } from "@/types/bill";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApiClient } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { BillMember } from '@/types/bill';
+import { queryKeys } from './query-keys';
 
 interface JoinResponse {
   message: string;
@@ -25,7 +26,7 @@ export const useJoinBill = () => {
     },
     onSuccess: (data) => {
       toast.success("เข้าร่วมบิลสำเร็จ! 🚀");
-      queryClient.invalidateQueries({ queryKey: ["my-bills"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.list() });
       
       const billId = data.billId || data.member?.billId;
       if (billId) {

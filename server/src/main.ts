@@ -3,6 +3,9 @@
 import * as dotenv from 'dotenv';
 dotenv.config(); // โหลด .env ก่อนเพื่อน
 
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
@@ -30,10 +33,10 @@ async function bootstrap() {
   });
 
   // 🚀 Start Server
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
+  const port = process.env.PORT || 3002;
+  await app.listen(port, '127.0.0.1'); // ปิดตาย ไม่ให้คนนอกเข้า Backend โดยตรง! (ผ่าน Proxy Next.js อย่างเดียว)
 
-  logger.log(`🚀 Application is running on: ${await app.getUrl()}`);
+  logger.log(`🚀 Application is running on: http://127.0.0.1:${port}`);
   logger.log(`⭐️ Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 void bootstrap();

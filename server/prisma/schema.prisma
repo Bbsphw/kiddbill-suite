@@ -1,6 +1,6 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
+  // previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -112,6 +112,10 @@ model BillMember {
   paidAmount      Decimal     @default(0) @db.Decimal(10, 2)
   userId          String?
   billId          String
+  slipAmount      Decimal?    @db.Decimal(10, 2)
+  slipSender      String?
+  slipRefId       String?     @unique
+  slipMatchStatus String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   bill            Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)

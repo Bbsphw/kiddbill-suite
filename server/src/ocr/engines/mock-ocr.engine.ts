@@ -1,13 +1,20 @@
-import 'multer';
 import { Injectable } from '@nestjs/common';
-import { OcrEngine } from '../interfaces/ocr-engine.interface';
-import { OcrResultDto } from '../dto/ocr-response.dto';
+import { OcrEngine } from '@/ocr/interfaces/ocr-engine.interface';
+import { OcrResultDto } from '@/ocr/dto/ocr-response.dto';
 
 @Injectable()
 export class MockOcrEngine implements OcrEngine {
-  async parseReceipt(file: Express.Multer.File): Promise<OcrResultDto> {
-    console.log(`Processing file: ${file.originalname} (${file.size} bytes)`);
+  async process(fileBuffer: Buffer): Promise<OcrResultDto> {
+    console.log(`Processing file buffer of size: ${fileBuffer.length}`);
+    return this.getMockResult();
+  }
 
+  async parseReceipt(imageUrl: string): Promise<OcrResultDto> {
+    console.log(`Processing file from URL: ${imageUrl}`);
+    return this.getMockResult();
+  }
+
+  private async getMockResult(): Promise<OcrResultDto> {
     // --- MOCK LOGIC (จำลองว่า AI อ่านเจออะไรบ้าง) ---
     const mockResult: OcrResultDto = {
       merchantName: 'MK Restaurants',

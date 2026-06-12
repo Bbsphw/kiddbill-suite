@@ -62,7 +62,7 @@ You must create and configure the following environment files before starting th
 * **Required Content**:
 
   ```env
-  NEXT_PUBLIC_API_URL="http://localhost:3001"
+  NEXT_PUBLIC_API_URL="http://localhost:3002"
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
   CLERK_SECRET_KEY="sk_test_..."
   CLERK_WEBHOOK_SECRET="whsec_..."
@@ -117,7 +117,7 @@ To ensure the best developer experience, optimal performance, and hassle-free de
    ```
 
    *The Next.js app will start on [http://localhost:3000](http://localhost:3000).*
-   *The NestJS server will start on [http://localhost:3001](http://localhost:3001).*
+   *The NestJS server will start on [http://localhost:3002](http://localhost:3002).*
 
 ### 🎯 Turborepo Best Practices & Commands
 
@@ -179,7 +179,7 @@ When running the project, services are mapped to the following ports:
 | Service | Port | Local URL | Description | Run Location (Hybrid Mode) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Frontend** | `3000` | [http://localhost:3000](http://localhost:3000) | Next.js Dev Server | Windows Host |
-| **Backend API** | `3001` | [http://localhost:3001](http://localhost:3001) | NestJS Dev Server | Windows Host |
+| **Backend API** | `3002` | [http://localhost:3002](http://localhost:3002) | NestJS Dev Server | Windows Host |
 | **Prisma Studio** | `5555` | [http://localhost:5555](http://localhost:5555) | Prisma Database GUI | Windows Host |
 | **pgAdmin 4** | `5050` | [http://localhost:5050](http://localhost:5050) | PostgreSQL Admin GUI | WSL2 Docker Container |
 | **PostgreSQL** | `5433` | `localhost:5433` | Database Port | WSL2 Docker Container |

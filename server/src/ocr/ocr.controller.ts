@@ -1,18 +1,7 @@
-// server/src/ocr/ocr.controller.ts
-
-import {
-  Controller,
-  Post,
-  UseInterceptors,
-  UploadedFile,
-  UseGuards,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { OcrService } from './ocr.service';
-import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
+import { ClerkAuthGuard } from '@/auth/clerk-auth.guard';
+import { OcrRateLimitGuard } from '@/common/guards/rate-limit.guard';
 import { OcrResultDto } from './dto/ocr-response.dto';
 
 @Controller('ocr')
@@ -21,18 +10,9 @@ export class OcrController {
   constructor(private readonly ocrService: OcrService) {}
 
   @Post('scan')
-  @UseInterceptors(FileInterceptor('file')) // รับ field ชื่อ 'file'
-  async scanReceipt(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
-          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }), // รับแค่รูป
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-  ): Promise<OcrResultDto> {
-    return this.ocrService.parseReceipt(file);
+  @UseGuards(OcrRateLimitGuard) // 🛡️ จำกัดการกดสแกนรูปภาพ 5 ครั้ง/ชม.
+  async scanReceipt(@Body() body: { imageUrl: string }): Promise<OcrResultDto> {
+    const { imageUrl } = body;
+    return this.ocrService.parseReceipt(imageUrl);
   }
 }

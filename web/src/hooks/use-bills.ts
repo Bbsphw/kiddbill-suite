@@ -1,10 +1,11 @@
 // web/src/hooks/use-bills.ts
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApiClient } from "@/lib/api";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { Bill, BillItem, BillMember } from "@/types/bill";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApiClient } from '@/lib/api';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { Bill, BillItem } from '@/types/bill';
+import { queryKeys } from './query-keys';
 
 // --- DTO Interfaces ---
 interface CreateBillDto {
@@ -53,7 +54,7 @@ export const useCreateBill = () => {
     },
     onSuccess: (data) => {
       toast.success("สร้างบิลสำเร็จ! 🎉");
-      queryClient.invalidateQueries({ queryKey: ["my-bills"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.list() });
       // Redirect ไปหน้าบิล
       router.push(`/bill/${data.id}`);
     },
@@ -66,11 +67,14 @@ export const useCreateBill = () => {
 export const useMyBills = () => {
   const api = useApiClient();
   return useQuery<Bill[]>({
-    queryKey: ["my-bills"],
+    queryKey: queryKeys.bills.list(),
     queryFn: async () => {
       const res = await api.get<Bill[]>("/bills");
       return res.data;
     },
+    staleTime: 30 * 1000,       // ✅ ข้อมูลสดอยู่ 30 วินาที
+    gcTime: 5 * 60 * 1000,      // ✅ เก็บ cache ไว้ 5 นาที
+    refetchOnMount: false,      // ✅ ถ้า cache ยังสด ไม่ต้อง re-fetch
   });
 };
 
@@ -78,12 +82,15 @@ export const useMyBills = () => {
 export const useBill = (id: string) => {
   const api = useApiClient();
   return useQuery<Bill>({
-    queryKey: ["bill", id],
+    queryKey: queryKeys.bills.detail(id),
     queryFn: async () => {
       const res = await api.get<Bill>(`/bills/${id}`);
       return res.data;
     },
     enabled: !!id, // ทำงานเมื่อมี id เท่านั้น
+    // ปิดการ Polling อัตโนมัติ (ประหยัด Server)
+    // เปลี่ยนไปพึ่งพา refetchOnWindowFocus (ดึงใหม่เมื่อสลับจอ) และ Manual Sync
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -100,7 +107,7 @@ export const useAddBillItem = (billId: string) => {
     onSuccess: () => {
       toast.success("เพิ่มรายการแล้ว 🍗");
       // Refresh ข้อมูลบิลทันที
-      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.detail(billId) });
     },
     onError: (error: Error) => {
       toast.error(error.message || "เพิ่มรายการไม่สำเร็จ");
@@ -122,7 +129,7 @@ export const useAddBillItemsBatch = (billId: string) => {
     },
     onSuccess: (results) => {
       toast.success(`เพิ่ม ${results.length} รายการสำเร็จแล้ว! 🍗`);
-      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.detail(billId) });
     },
     onError: (error: Error) => {
       toast.error(error.message || "เพิ่มรายการไม่สำเร็จ");
@@ -141,7 +148,7 @@ export const useDeleteBillItem = (billId: string) => {
     },
     onSuccess: () => {
       toast.success("ลบรายการแล้ว 🗑️");
-      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.detail(billId) });
     },
     onError: (error: Error) => {
       toast.error(error.message || "ลบรายการไม่สำเร็จ");
@@ -161,7 +168,7 @@ export const useUpdateBillItem = (billId: string) => {
     },
     onSuccess: () => {
       // Invalidate เพื่อให้ Grand Total คำนวณใหม่
-      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.detail(billId) });
     },
     onError: (error: Error) => {
       toast.error(error.message || "แก้ไขรายการไม่สำเร็จ");
@@ -182,7 +189,7 @@ export const useAddGuestMember = (billId: string) => {
     onSuccess: () => {
       toast.success("เพิ่มสมาชิกเรียบร้อย! 🙋‍♂️");
       // Refresh ข้อมูลบิลเพื่ออัปเดตรายชื่อคน
-      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.detail(billId) });
     },
     onError: (error: Error) => {
       toast.error(error.message || "เพิ่มสมาชิกไม่สำเร็จ");
@@ -201,7 +208,7 @@ export const useAssignSplit = (billId: string) => {
     },
     onSuccess: () => {
       // Refresh เพื่อให้หน้าบิลอัปเดตว่าใครหารบ้าง
-      queryClient.invalidateQueries({ queryKey: ["bill", billId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bills.detail(billId) });
       toast.success("บันทึกเรียบร้อย ✅");
     },
     onError: (error: Error) => {

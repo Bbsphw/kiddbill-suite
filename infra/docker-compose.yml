@@ -44,7 +44,7 @@ services:
       - ../server:/app
       - /app/node_modules # ป้องกัน node_modules ชนกันระหว่าง OS
     ports:
-      - "3001:3001" # NestJS รันที่พอร์ต 3001
+      - "3002:3002" # NestJS รันที่พอร์ต 3002
     command: sh -c "corepack enable && pnpm install && npx prisma generate && pnpm run start:dev"
     depends_on:
       - kiddbill-db

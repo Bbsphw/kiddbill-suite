@@ -12,8 +12,8 @@ import {
 import { BillItemsService } from './bill-items.service';
 import { CreateBillItemDto } from './dto/create-bill-item.dto';
 import { UpdateBillItemDto } from './dto/update-bill-item.dto';
-import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { ClerkAuthGuard } from '@/auth/clerk-auth.guard';
+import { CurrentUser } from '@/auth/current-user.decorator';
 
 @Controller('bill-items')
 @UseGuards(ClerkAuthGuard) // 🛡️ บังคับ Login

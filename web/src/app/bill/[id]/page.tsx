@@ -25,13 +25,14 @@ import {
   Wallet,
   ArrowRight,
   Lock,
+  RefreshCcw,
 } from "lucide-react";
 
 export default function BillDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const { user } = useUser();
-  const { data: bill, isLoading, error } = useBill(id);
+  const { data: bill, isLoading, error, refetch, isRefetching } = useBill(id);
   const addItemMutation = useAddBillItem(id);
   const [itemName, setItemName] = useState("");
   const [itemPrice, setItemPrice] = useState("");
@@ -103,12 +104,22 @@ export default function BillDetailPage() {
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
-          {new Date(bill.createdAt).toLocaleDateString("th-TH", {
-            day: "numeric",
-            month: "short",
-          })}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+            {new Date(bill.createdAt).toLocaleDateString("th-TH", {
+              day: "numeric",
+              month: "short",
+            })}
+          </span>
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors disabled:opacity-50"
+            title="ซิงค์ข้อมูลล่าสุด"
+          >
+            <RefreshCcw className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </nav>
 
       <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">

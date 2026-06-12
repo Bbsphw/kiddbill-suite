@@ -1,5 +1,3 @@
-// server/src/bill-members/bill-members.controller.ts
-
 import {
   Controller,
   Post,
@@ -12,8 +10,9 @@ import {
 import { BillMembersService } from './bill-members.service';
 import { JoinBillDto } from './dto/join-bill-member.dto';
 import { CreateBillMemberDto } from './dto/create-bill-member.dto';
-import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { ClerkAuthGuard } from '@/auth/clerk-auth.guard';
+import { CurrentUser } from '@/auth/current-user.decorator';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 
 @Controller('bill-members')
 @UseGuards(ClerkAuthGuard) // 🛡️ บังคับ Login
@@ -51,5 +50,17 @@ export class BillMembersController {
   @Patch(':id/verify')
   verify(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.billMembersService.verifyPayment(id, user.id);
+  }
+
+  // 6. อัปโหลดสลิปตรวจเงินโอน (AI-Assisted)
+  @Patch(':id/submit-slip')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 600000 } }) // 🛡️ จำกัดการกดอัปโหลดสลิป 3 ครั้ง / 10 นาที
+  submitSlip(
+    @Param('id') id: string,
+    @Body() dto: { paymentProofUrl: string },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.billMembersService.submitSlip(id, user.id, dto.paymentProofUrl);
   }
 }

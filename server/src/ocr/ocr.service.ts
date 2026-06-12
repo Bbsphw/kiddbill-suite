@@ -1,10 +1,7 @@
-// server/src/ocr/ocr.service.ts
-
-import 'multer';
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { OCR_ENGINE } from './ocr.constants';
 import { OcrEngine } from './interfaces/ocr-engine.interface';
-import { OcrResultDto } from './dto/ocr-response.dto';
+import { OcrResultDto } from '@/ocr/dto/ocr-response.dto';
 
 @Injectable()
 export class OcrService {
@@ -14,9 +11,13 @@ export class OcrService {
   ) {}
 
   // ฟังก์ชันรับรูปภาพและแปลงเป็นรายการอาหาร
-  async parseReceipt(file: Express.Multer.File): Promise<OcrResultDto> {
-    if (!file) throw new BadRequestException('No file uploaded');
+  async processReceipt(fileBuffer: Buffer): Promise<OcrResultDto> {
+    return await this.ocrEngine.process(fileBuffer);
+  }
 
-    return this.ocrEngine.parseReceipt(file);
+  async parseReceipt(imageUrl: string): Promise<OcrResultDto> {
+    if (!imageUrl) throw new BadRequestException('No image URL provided');
+
+    return this.ocrEngine.parseReceipt(imageUrl);
   }
 }
