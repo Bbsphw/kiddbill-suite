@@ -101,7 +101,7 @@ export class GeminiOcrEngine implements OcrEngine {
     }
 
     const base64Data = buffer.toString('base64');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
 
     const prompt = `
       คุณคือระบบปัญญาประดิษฐ์สแกนใบเสร็จอาหารสำหรับแอปพลิเคชัน Kiddbill (แอปหารค่าอาหาร)

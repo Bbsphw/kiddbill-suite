@@ -2,7 +2,11 @@
 
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bullmq';
+import { LoggerModule } from 'nestjs-pino';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { validate } from './env';
 
 // Core Modules
@@ -20,9 +24,11 @@ import { SplitsModule } from './splits/splits.module';
 import { FriendsModule } from './friends/friends.module';
 import { OcrModule } from './ocr/ocr.module';
 import { StorageModule } from './storage/storage.module';
+import { WebhooksController } from './webhooks/webhooks.controller';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     // ⚙️ Config: โหลด .env ให้ใช้ได้ทั้งแอป
     ConfigModule.forRoot({
       isGlobal: true,
@@ -43,6 +49,27 @@ import { StorageModule } from './storage/storage.module';
       },
     ]),
 
+    // 🚀 Background Jobs (Redis)
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        password: process.env.REDIS_PASSWORD || undefined,
+        tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+      },
+    }),
+
+    // 📋 Structured Logging (Pino)
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { singleLine: true } }
+            : undefined,
+        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
+      },
+    }),
+
     // 🗄️ Database
     PrismaModule,
 
@@ -57,7 +84,17 @@ import { StorageModule } from './storage/storage.module';
     OcrModule,
     StorageModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, WebhooksController],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

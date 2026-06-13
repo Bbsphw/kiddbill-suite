@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         (email) => email.id === evt.data.primary_email_address_id,
       )?.email_address || email_addresses[0]?.email_address;
 
-    const backendUrl = env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+    const backendUrl = env.NEXT_PUBLIC_API_URL ? `${env.NEXT_PUBLIC_API_URL}/v1` : "http://localhost:3002/v1";
 
     try {
       console.log(`🚀 Syncing user ${id} to Backend...`);

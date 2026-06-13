@@ -4,6 +4,45 @@ A modern monorepo development suite featuring a NestJS Backend, Next.js Frontend
 
 ---
 
+## 🏗️ 5-Layer Architecture & Tech Stack
+
+ระบบ **Kiddbill Suite** ถูกออกแบบมาด้วยสถาปัตยกรรม 5 ชั้น (5-Layer Architecture) โดยเลือกใช้เทคโนโลยีตามรายละเอียดและเวอร์ชันต่อไปนี้:
+
+### 1. Client & Delivery Layer (ฝั่งผู้ใช้งานและส่วนหน้า)
+- **Front-End Framework:** Next.js `v16.1.4` (App Router)
+- **UI Library:** React `v19.2.3`
+- **Language:** TypeScript `v6.0.3`
+- **Styling:** Tailwind CSS `v4.1.18`
+- **Components:** Radix UI `v1.4.3`
+- **State Management:** Zustand `v5.0.11`
+- **Data Fetching:** TanStack React Query `v5.90.20`
+- **Hosting & CDN:** Vercel (Edge Network)
+
+### 2. Gateway & Security Layer (ทางเข้าและการคัดกรอง)
+- **Authentication & Authorization:** Clerk (`@clerk/nextjs v6.37.1`, `@clerk/clerk-sdk-node v5.1.6`)
+- **API Security:** NestJS Throttler (`@nestjs/throttler v6.5.0`)
+- **Webhook Security:** Svix `v1.84.1`
+
+### 3. Core Logic & Data Layer (ส่วนประมวลผลและจัดเก็บข้อมูล)
+- **Back-End Framework:** NestJS `v11.1.12`
+- **Language:** TypeScript `v6.0.3`
+- **Database ORM:** Prisma `v7.8.0`
+- **Database:** PostgreSQL (Hosted on Supabase)
+- **Queue & Background Jobs:** BullMQ `v5.78.0` (`@nestjs/bullmq v11.0.4`)
+- **Cache / Message Broker:** Redis (Hosted on Upstash)
+
+### 4. Integration Layer (ระบบสนับสนุนและบริการภายนอก)
+- **OCR / AI Engine:** Google Gemini API
+- **Object Storage:** Cloudflare R2 (S3-Compatible `aws-sdk v3.600.0`)
+
+### 5. Infrastructure & Operations Layer (รากฐานและระบบดูแลรักษา)
+- **Backend Hosting:** Koyeb (Docker Container Deployment)
+- **CI/CD Pipeline:** GitHub Actions
+- **Error Tracking:** Sentry (`@sentry/nextjs`, `@sentry/nestjs v10.57.0`)
+- **Logging:** Pino (`nestjs-pino v4.6.1`)
+
+---
+
 ## 📁 Repository Structure
 
 * **[web](file:///d:/kiddbill-suite/web)**: Next.js Frontend (Tailwind CSS, Radix UI, Clerk Auth, React Query)
@@ -17,6 +56,33 @@ A modern monorepo development suite featuring a NestJS Backend, Next.js Frontend
 * **Docker & Docker Compose** (installed on your host machine or Ubuntu WSL2)
 * **Node.js v22+** (recommended for running local development scripts)
 * **pnpm** (preferred package manager)
+
+---
+
+## 🔗 Quick Links & Dashboards
+
+แหล่งรวบรวมลิงก์สำคัญทั้งหมดที่ใช้ในโปรเจกต์ เพื่อให้ทีม Developer กดเข้าสู่ระบบและจัดการ Environment ต่างๆ ได้ง่ายขึ้น:
+
+### 🏠 Local Development URLs
+| Service | URL | Description |
+|:---|:---|:---|
+| **Frontend App** | [http://localhost:3000](http://localhost:3000) | หน้าเว็บฝั่งผู้ใช้งาน |
+| **Backend API** | [http://localhost:3002](http://localhost:3002) | เส้นทางหลักของ API |
+| **Swagger API Docs** | [http://localhost:3002/api/docs](http://localhost:3002/api/docs) | หน้าเอกสารและทดสอบ API ทั้งหมด (พร้อมช่องใส่ Token) |
+| **API Blueprint** | [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | ไฟล์เอกสารสรุป API สำหรับให้ Frontend อ่าน |
+| **Prisma Studio**| [http://localhost:5555](http://localhost:5555) | ระบบจัดการ Database GUI |
+| **pgAdmin 4** | [http://localhost:5050](http://localhost:5050) | จัดการ Postgres ผ่าน Docker |
+
+### ☁️ External Services & Dashboards
+| Layer | Service / Tech | Dashboard URL |
+|:---|:---|:---|
+| **Frontend Hosting** | Vercel | [https://vercel.com/dashboard](https://vercel.com/dashboard) |
+| **Backend Hosting** | Koyeb | [https://app.koyeb.com](https://app.koyeb.com/) |
+| **Database** | Supabase | [https://supabase.com/dashboard](https://supabase.com/dashboard) |
+| **Cache & Queue** | Upstash (Redis) | [https://console.upstash.com](https://console.upstash.com/) |
+| **Authentication** | Clerk | [https://dashboard.clerk.com](https://dashboard.clerk.com/) |
+| **Object Storage** | Cloudflare R2 | [https://dash.cloudflare.com](https://dash.cloudflare.com/) |
+| **AI / OCR** | Google AI Studio | [https://aistudio.google.com](https://aistudio.google.com/) |
 
 ---
 
@@ -180,6 +246,7 @@ When running the project, services are mapped to the following ports:
 | :--- | :--- | :--- | :--- | :--- |
 | **Frontend** | `3000` | [http://localhost:3000](http://localhost:3000) | Next.js Dev Server | Windows Host |
 | **Backend API** | `3002` | [http://localhost:3002](http://localhost:3002) | NestJS Dev Server | Windows Host |
+| **Swagger UI** | `3002` | [http://localhost:3002/api/docs](http://localhost:3002/api/docs) | เอกสาร Swagger ทดสอบ API | Windows Host |
 | **Prisma Studio** | `5555` | [http://localhost:5555](http://localhost:5555) | Prisma Database GUI | Windows Host |
 | **pgAdmin 4** | `5050` | [http://localhost:5050](http://localhost:5050) | PostgreSQL Admin GUI | WSL2 Docker Container |
 | **PostgreSQL** | `5433` | `localhost:5433` | Database Port | WSL2 Docker Container |
