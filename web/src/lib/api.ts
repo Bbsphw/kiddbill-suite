@@ -1,4 +1,3 @@
-/* eslint-disable */
 // web/src/lib/api.ts
 
 import { useAuth } from "@clerk/nextjs";
@@ -8,8 +7,8 @@ import { useMemo } from "react";
 import { env } from "@/env";
 const isServer = typeof window === "undefined";
 const BASE_URL = isServer 
-  ? "http://127.0.0.1:3002" // [BEST PRACTICE] RSC calls backend directly (Skip Proxy)
-  : env.NEXT_PUBLIC_API_URL;
+  ? "http://127.0.0.1:3002/v1" // [BEST PRACTICE] RSC calls backend directly (Skip Proxy)
+  : `${env.NEXT_PUBLIC_API_URL}/v1`;
 
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
@@ -63,11 +62,13 @@ export const useApiClient = (): ApiClient => {
       // Token Caching: Clerk's getToken causes latency on every call
       // Cache the token for 50 seconds since typical Clerk tokens last ~60 seconds
       let token = _cachedToken;
-      // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/rules-of-hooks
+      // eslint-disable-next-line react-hooks/purity
       const now = Date.now();
       if (!_cachedToken || now > _tokenExpiresAt) {
         token = await getToken();
+        // eslint-disable-next-line react-hooks/globals
         _cachedToken = token;
+        // eslint-disable-next-line react-hooks/globals
         _tokenExpiresAt = now + 50 * 1000; // Cache for 50 seconds
       }
       

@@ -14,6 +14,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ClerkAuthGuard } from '@/auth/clerk-auth.guard';
 import { StorageService } from './storage.service';
@@ -21,6 +22,7 @@ import { Request, Response } from 'express';
 import { join } from 'path';
 import { existsSync, createWriteStream, mkdirSync } from 'fs';
 
+@ApiTags('Storage')
 @Controller('storage')
 export class StorageController {
   constructor(
@@ -29,7 +31,9 @@ export class StorageController {
   ) {}
 
   @Post('upload-url')
+  @ApiBearerAuth()
   @UseGuards(ClerkAuthGuard)
+  @ApiOperation({ summary: 'Get a presigned upload URL for Cloudflare R2' })
   async getUploadUrl(@Body() body: { fileName: string; contentType: string }) {
     const { fileName, contentType } = body;
     if (!fileName || !contentType) {
@@ -39,6 +43,7 @@ export class StorageController {
   }
 
   @Put('upload/:key')
+  @ApiOperation({ summary: 'Local upload endpoint (Development only)' })
   async uploadLocalFile(@Param('key') key: string, @Req() req: Request) {
     const provider =
       this.configService.get<string>('STORAGE_PROVIDER') || 'local';
@@ -70,6 +75,7 @@ export class StorageController {
   }
 
   @Get('file/:key')
+  @ApiOperation({ summary: 'Get local file (Development only)' })
   getLocalFile(@Param('key') key: string, @Res() res: Response) {
     const provider =
       this.configService.get<string>('STORAGE_PROVIDER') || 'local';

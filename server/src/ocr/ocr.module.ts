@@ -6,8 +6,15 @@ import { OCR_ENGINE } from './ocr.constants';
 import { MockOcrEngine } from './engines/mock-ocr.engine';
 import { GeminiOcrEngine } from './engines/gemini-ocr.engine';
 import { SlipReaderService } from './slip-reader.service';
+import { BullModule } from '@nestjs/bullmq';
+import { OcrProcessor } from './ocr.processor';
 
 @Module({
+  imports: [
+    BullModule.registerQueue({
+      name: 'ocr-queue',
+    }),
+  ],
   controllers: [OcrController],
   providers: [
     OcrService,
@@ -23,6 +30,7 @@ import { SlipReaderService } from './slip-reader.service';
       },
       inject: [ConfigService],
     },
+    OcrProcessor,
   ],
   exports: [OcrService, SlipReaderService],
 })

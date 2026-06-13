@@ -49,10 +49,10 @@ export class PrismaService
       await this.$connect();
       // 🛡️ บังคับยิง Query เทส Pool ว่าใช้งานได้จริง (Fail-Fast)
       await this.$queryRawUnsafe('SELECT 1');
-      this.logger.log('✅ Database connected and verified via Prisma Adapter');
+      this.logger.log('🗄️ Database connected and verified via Prisma Adapter');
     } catch (error) {
       this.logger.error(
-        '❌ Database connection failed. Is PostgreSQL running?',
+        '❌🗄️ Database connection failed. Is PostgreSQL running?',
         error,
       );
       // Fail-fast: Stop the application immediately if the database is unavailable

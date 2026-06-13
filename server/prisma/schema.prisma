@@ -33,6 +33,7 @@ model Friend {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, nickname])
+  @@index([userId])
 }
 
 model UserBankAccount {
@@ -47,6 +48,7 @@ model UserBankAccount {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, accountNumber])
+  @@index([userId])
 }
 
 model Bill {
@@ -141,6 +143,7 @@ model ItemSplit {
 enum BillStatus {
   DRAFT
   OCR_PROCESSING
+  OCR_FAILED
   SPLITTING
   COMPLETED
   CANCELLED
