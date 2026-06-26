@@ -47,7 +47,7 @@ export class BillItemsService {
     const newOrderIndex = (lastItem?.orderIndex ?? 0) + 1;
 
     // 4. บันทึก
-    return this.prisma.billItem.create({
+    return await this.prisma.billItem.create({
       data: {
         billId: dto.billId,
         name: dto.name,
@@ -88,7 +88,7 @@ export class BillItemsService {
     const newQuantity = dto.quantity ?? item.quantity;
     const newTotalPrice = newPrice * newQuantity;
 
-    return this.prisma.billItem.update({
+    return await this.prisma.billItem.update({
       where: { id },
       data: {
         ...dto,
@@ -118,7 +118,7 @@ export class BillItemsService {
       throw new ForbiddenException('Only bill owner can delete items');
     }
 
-    return this.prisma.billItem.delete({
+    return await this.prisma.billItem.delete({
       where: { id },
     });
   }

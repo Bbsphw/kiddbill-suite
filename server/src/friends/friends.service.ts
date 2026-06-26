@@ -29,7 +29,7 @@ export class FriendsService {
     }
 
     // 2. สร้าง
-    return this.prisma.friend.create({
+    return await this.prisma.friend.create({
       data: {
         userId,
         nickname: dto.nickname,
@@ -39,7 +39,7 @@ export class FriendsService {
 
   // 📋 ดึงรายชื่อเพื่อนทั้งหมด
   async findAll(userId: string) {
-    return this.prisma.friend.findMany({
+    return await this.prisma.friend.findMany({
       where: { userId },
       orderBy: { nickname: 'asc' }, // เรียงตาม ก-ฮ
     });
@@ -69,7 +69,7 @@ export class FriendsService {
       }
     }
 
-    return this.prisma.friend.update({
+    return await this.prisma.friend.update({
       where: { id },
       data: dto,
     });
