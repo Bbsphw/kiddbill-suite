@@ -72,16 +72,19 @@ export class BillsService {
             avatarUrl: clerkUser.imageUrl,
           },
         });
-      } catch (e) {
+      } catch (e: unknown) {
         // Fallback กรณี Clerk ล่ม หรือหาไม่เจอ
-        console.error('Sync user failed:', e);
+        console.error(
+          'Sync user failed:',
+          e instanceof Error ? e.stack : 'Unknown error',
+        );
       }
     }
 
     const ownerName = user?.firstName || user?.username || 'Owner';
 
     // 3. สร้างบิล + เพิ่ม Owner เป็นสมาชิกคนแรก
-    return this.prisma.bill.create({
+    return await this.prisma.bill.create({
       data: {
         ...dto,
         ownerId: userId,
@@ -178,7 +181,7 @@ export class BillsService {
       throw new ForbiddenException('Only owner can update bill');
     }
 
-    return this.prisma.bill.update({
+    return await this.prisma.bill.update({
       where: { id },
       data: dto,
     });
@@ -194,7 +197,7 @@ export class BillsService {
     }
 
     // ไม่ลบจริง แต่ใส่เวลา deletedAt และเปลี่ยนสถานะเป็น CANCELLED
-    return this.prisma.bill.update({
+    return await this.prisma.bill.update({
       where: { id },
       data: {
         deletedAt: new Date(),

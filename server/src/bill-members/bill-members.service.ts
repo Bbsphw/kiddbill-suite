@@ -144,7 +144,7 @@ export class BillMembersService {
     }
 
     // 2. สร้าง Guest (userId = null)
-    return this.prisma.billMember.create({
+    return await this.prisma.billMember.create({
       data: {
         billId: dto.billId,
         name: dto.name,
@@ -155,7 +155,7 @@ export class BillMembersService {
 
   // 📋 3. ดึงรายชื่อสมาชิกทั้งหมด
   async findAll(billId: string) {
-    return this.prisma.billMember.findMany({
+    return await this.prisma.billMember.findMany({
       where: { billId },
       include: { user: true }, // ดึงข้อมูล User จริงมาด้วย (ถ้ามี)
       orderBy: { createdAt: 'asc' },
@@ -184,7 +184,7 @@ export class BillMembersService {
       throw new ForbiddenException('Not authorized to update this member');
     }
 
-    return this.prisma.billMember.update({
+    return await this.prisma.billMember.update({
       where: { id: memberId },
       data: {
         isPaid: !member.isPaid, // สลับสถานะ
@@ -212,7 +212,7 @@ export class BillMembersService {
       throw new ForbiddenException('Only owner can verify payments');
     }
 
-    return this.prisma.billMember.update({
+    return await this.prisma.billMember.update({
       where: { id: memberId },
       data: {
         verifiedAt: new Date(), // ลงเวลายืนยัน
@@ -314,10 +314,13 @@ export class BillMembersService {
         mimeType = 'image/png';
       else if (paymentProofUrl.toLowerCase().endsWith('.webp'))
         mimeType = 'image/webp';
-    } catch (e) {
+    } catch (e: unknown) {
       // If download fails, we fallback to manual check status, but don't crash the entire request
-      this.logger.error('Failed to download slip for AI verification', e);
-      return this.prisma.billMember.update({
+      this.logger.error(
+        'Failed to download slip for AI verification',
+        e instanceof Error ? e.stack : 'Unknown error',
+      );
+      return await this.prisma.billMember.update({
         where: { id: memberId },
         data: {
           isPaid: true,
@@ -332,7 +335,7 @@ export class BillMembersService {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
     if (!apiKey) {
       // Fallback if no API key
-      return this.prisma.billMember.update({
+      return await this.prisma.billMember.update({
         where: { id: memberId },
         data: {
           isPaid: true,
@@ -388,7 +391,7 @@ export class BillMembersService {
       const parsed = JSON.parse(text.trim()) as GeminiSlipResult;
 
       if (parsed.error) {
-        return this.prisma.billMember.update({
+        return await this.prisma.billMember.update({
           where: { id: memberId },
           data: {
             isPaid: true,
@@ -415,7 +418,7 @@ export class BillMembersService {
         });
 
         if (duplicateRef) {
-          return this.prisma.billMember.update({
+          return await this.prisma.billMember.update({
             where: { id: memberId },
             data: {
               isPaid: true,
@@ -433,7 +436,7 @@ export class BillMembersService {
       const isAmountMatched = Math.abs(slipAmount - expectedAmount) < 0.05;
       const slipMatchStatus = isAmountMatched ? 'MATCHED' : 'MISMATCHED';
 
-      return this.prisma.billMember.update({
+      return await this.prisma.billMember.update({
         where: { id: memberId },
         data: {
           isPaid: true,
@@ -445,9 +448,12 @@ export class BillMembersService {
           slipMatchStatus,
         },
       });
-    } catch (e) {
-      this.logger.error('Failed in submitSlip Gemini processing', e);
-      return this.prisma.billMember.update({
+    } catch (e: unknown) {
+      this.logger.error(
+        'Failed in submitSlip Gemini processing',
+        e instanceof Error ? e.stack : 'Unknown error',
+      );
+      return await this.prisma.billMember.update({
         where: { id: memberId },
         data: {
           isPaid: true,

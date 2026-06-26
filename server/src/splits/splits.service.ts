@@ -83,7 +83,7 @@ export class SplitsService {
 
   // 📋 ดูว่าเมนูนี้ใครหารบ้าง
   async getItemSplits(itemId: string) {
-    return this.prisma.itemSplit.findMany({
+    return await this.prisma.itemSplit.findMany({
       where: { itemId },
       include: {
         member: {

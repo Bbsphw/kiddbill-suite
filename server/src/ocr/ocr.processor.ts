@@ -51,7 +51,7 @@ export class OcrProcessor extends WorkerHost {
       if (error instanceof Error) {
         this.logger.error(`OCR job ${job.id} failed: ${error.message}`);
       }
-      throw error;
+      throw error instanceof Error ? error : new Error('Unknown error');
     }
   }
 }

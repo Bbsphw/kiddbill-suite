@@ -50,10 +50,10 @@ export class PrismaService
       // 🛡️ บังคับยิง Query เทส Pool ว่าใช้งานได้จริง (Fail-Fast)
       await this.$queryRawUnsafe('SELECT 1');
       this.logger.log('🗄️ Database connected and verified via Prisma Adapter');
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         '❌🗄️ Database connection failed. Is PostgreSQL running?',
-        error,
+        error instanceof Error ? error.stack : 'Unknown error',
       );
       // Fail-fast: Stop the application immediately if the database is unavailable
       process.exit(1);
@@ -64,8 +64,11 @@ export class PrismaService
     try {
       await this.$disconnect();
       this.logger.log('🛑 Database disconnected');
-    } catch (error) {
-      this.logger.error('❌ Error during database disconnect', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        '❌ Error during database disconnect',
+        error instanceof Error ? error.stack : 'Unknown error',
+      );
     }
   }
 }

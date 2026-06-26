@@ -18,10 +18,13 @@ export class AppService {
     // 1. Check Database (Prisma)
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-    } catch (e) {
+    } catch (e: unknown) {
       dbStatus = 'error';
       issues.push('Database connectivity failed');
-      this.logger.error('Diagnostics: Database ping failed', e);
+      this.logger.error(
+        'Diagnostics: Database ping failed',
+        e instanceof Error ? e.message : 'Unknown error',
+      );
     }
 
     // 2. Check Redis
@@ -40,10 +43,13 @@ export class AppService {
       if (redisClient) {
         await redisClient.ping();
       }
-    } catch (e) {
+    } catch (e: unknown) {
       redisStatus = 'error';
       issues.push('Redis connectivity failed (BullMQ)');
-      this.logger.error('Diagnostics: Redis ping failed', e);
+      this.logger.error(
+        'Diagnostics: Redis ping failed',
+        e instanceof Error ? e.message : 'Unknown error',
+      );
     } finally {
       if (redisClient) {
         redisClient.disconnect();

@@ -28,7 +28,7 @@ export class UsersService {
     };
 
     // 2. Upsert (ถ้ามีให้อัปเดต, ถ้าไม่มีให้สร้าง)
-    return this.prisma.user.upsert({
+    return await this.prisma.user.upsert({
       where: { id: dto.id },
       update: data,
       create: {
@@ -66,7 +66,7 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: userId },
       data: dto,
     });
@@ -74,7 +74,7 @@ export class UsersService {
 
   // 🔍 ค้นหา User (สำหรับ Add Friend)
   async searchUsers(query: string, currentUserId: string) {
-    return this.prisma.user.findMany({
+    return await this.prisma.user.findMany({
       where: {
         // 1. ถ้าต้องการ "ซ่อนตัวเอง" ให้เปิดบรรทัดนี้ (ปกติแอพแชทจะซ่อน)
         id: { not: currentUserId },
